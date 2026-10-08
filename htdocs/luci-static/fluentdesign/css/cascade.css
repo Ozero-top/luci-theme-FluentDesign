@@ -14,13 +14,16 @@
    ========================================================================== */
 
 :root {
-	/* Accent — hover/active/tint are derived so a UCI custom accent adapts
-	   automatically in both schemes (color-mix, evergreen browsers 2023+). */
+	/* Accent.
+	   Static fallbacks keep older browsers (Chrome <111, Safari <16.2,
+	   Firefox <113) usable with the default Fluent blue; when color-mix()
+	   is supported, the values re-derive live from the UCI-configured
+	   --primary, so custom accents still adapt. */
 	--primary: #0078d4;
-	--primary-hover: color-mix(in srgb, var(--primary) 87%, #ffffff);
-	--primary-active: color-mix(in srgb, var(--primary) 78%, #000000);
-	--primary-tint: color-mix(in srgb, var(--primary) 10%, transparent);
-	--primary-tint-hover: color-mix(in srgb, var(--primary) 18%, transparent);
+	--primary-hover: #218ada;
+	--primary-active: #005ea5;
+	--primary-tint: rgba(0,120,212,.10);
+	--primary-tint-hover: rgba(0,120,212,.18);
 
 	/* Status colors */
 	--accent-yellow: #ffb900;
@@ -76,6 +79,17 @@
 
 	--icon-volume-high: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Cpath fill='%23fff' d='M4 8v4h3l4 3.5v-11L7 8H4z'/%3E%3Cpath fill='none' stroke='%23fff' stroke-width='1.4' stroke-linecap='round' d='M13 7.5a3.5 3.5 0 0 1 0 5M14.8 5.8a6 6 0 0 1 0 8.4'/%3E%3C/svg%3E");
 	--icon-volume-off: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Cpath fill='%23fff' d='M4 8v4h3l4 3.5v-11L7 8H4z'/%3E%3Cpath fill='none' stroke='%23fff' stroke-width='1.4' stroke-linecap='round' d='M13.5 8.5l4 4m0-4l-4 4'/%3E%3C/svg%3E");
+}
+
+/* Re-derive accent states from the live (possibly UCI-customized) --primary
+   where color-mix() is available; older browsers keep the static fallbacks. */
+@supports (background: color-mix(in srgb, red, blue)) {
+	:root {
+		--primary-hover: color-mix(in srgb, var(--primary) 87%, #ffffff);
+		--primary-active: color-mix(in srgb, var(--primary) 78%, #000000);
+		--primary-tint: color-mix(in srgb, var(--primary) 10%, transparent);
+		--primary-tint-hover: color-mix(in srgb, var(--primary) 18%, transparent);
+	}
 }
 
 /* ==========================================================================
@@ -1703,6 +1717,9 @@ label > input[type="radio"] {
 	vertical-align: middle;
 }
 
+/* Merge input + adjacent action button corners only where :has() exists;
+   older browsers just keep each control's own rounding. */
+@supports selector(:has(*)) {
 .control-group:has(> input:first-child + .cbi-button) {
 	gap: 0 !important;
 }
@@ -1718,6 +1735,7 @@ label > input[type="radio"] {
 	border-top-left-radius: 0;
 	border-bottom-left-radius: 0;
 	border-left: 0;
+}
 }
 
 .cbi-section-create {
@@ -1859,10 +1877,16 @@ label > input[type="radio"] {
 	text-overflow: ellipsis;
 }
 
-.cbi-dynlist > .item.drag-over,
-.cbi-dynlist > .add-item:has(.drag-over) {
+.cbi-dynlist > .item.drag-over {
 	border-top: 1px solid var(--danger);
 	margin-top: -1px;
+}
+
+@supports selector(:has(*)) {
+	.cbi-dynlist > .add-item:has(.drag-over) {
+		border-top: 1px solid var(--danger);
+		margin-top: -1px;
+	}
 }
 
 .cbi-dynlist[name="sshkeys"] > .item {
@@ -2256,6 +2280,7 @@ td.cbi-value-field var,
 body.modal-overlay-active {
 	overflow: hidden;
 	height: 100vh;
+	height: 100dvh;
 }
 
 body.modal-overlay-active #modal_overlay {
@@ -2906,6 +2931,7 @@ footer ul#modemenu a.active {
 .login-body {
 	height: auto;
 	min-height: 100vh;
+	min-height: 100dvh;
 	overflow: hidden;
 	background: #0a3a63;
 }
@@ -2914,6 +2940,7 @@ footer ul#modemenu a.active {
 	position: relative;
 	display: flex;
 	min-height: 100vh;
+	min-height: 100dvh;
 	flex-direction: column;
 }
 
@@ -2967,6 +2994,7 @@ footer ul#modemenu a.active {
 	width: 26rem;
 	max-width: calc(100vw - 2rem);
 	min-height: 100vh;
+	min-height: 100dvh;
 	margin-left: 6%;
 	background: rgba(255,255,255,var(--acrylic-opacity));
 	-webkit-backdrop-filter: blur(var(--acrylic-blur)) saturate(130%);
@@ -3414,6 +3442,7 @@ footer ul#modemenu a.active {
 		max-width: 100%;
 		margin-left: 0;
 		min-height: 100vh;
+	min-height: 100dvh;
 		border-right: 0;
 	}
 

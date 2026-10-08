@@ -47,8 +47,44 @@ Runtime mapping (performed by `luci.mk`):
 
 ## Requirements
 
-- OpenWrt with the ucode LuCI stack (24.10 / SNAPSHOT+)
+- OpenWrt with the ucode LuCI stack (24.10 / SNAPSHOT and newer)
 - `luci-base` (declared as the only package dependency)
+
+## Compatibility
+
+**OpenWrt / LuCI server stack** — the theme uses the ucode template
+LuCI (the same stack as the stock 22.03+ themes), the standard
+`luci-base` dispatcher, rpcd ACL JSON and `menu.d` registration:
+
+| Stack | Status |
+|--------|--------|
+| OpenWrt 24.10 / SNAPSHOT, 23.05, 2203 | Supported |
+| ImmortalWrt on the matching baselines (22.03 / 23.05 / 24.10) | Supported |
+| OpenWrt 21.02 and older (Lua `.htm` template LuCI) | Not supported |
+
+**Web server** — transparent, because the theme sits on the LuCI
+rendering layer and ships only static assets plus ucode templates:
+
+- **uhttpd** (default): works out of the box.
+- **nginx**: works with the standard `luci-nginx` / uwsgi setup.
+  No theme-side configuration is needed — all URLs are built via
+  `media` / `resource` / `dispatcher.build_url()`, nothing hardcodes
+  `/cgi-bin/luci`, and `/luci-static` is served as plain static files
+  by both servers.
+
+**LuCI pages and third-party apps** — every official module and
+third-party application that targets the standard LuCI layout renders
+inside the theme: the header/footer keep the stock DOM contract
+(`#mainmenu`, `#modemenu`, `#tabmenu`, `#maincontent > .container`,
+`.showSide`, `.darkMask`), and the settings page uses only public
+`form` / `uci` / `ui` APIs.
+
+**Browsers** — modern engines (Chrome/Edge 111+, Firefox 113+,
+Safari 16.2+) get the full experience including live-derived
+hover/active accent colors and dynamic viewport sizing. Older
+engines degrade gracefully via `@supports` / static-value fallbacks
+(default Fluent accent, `100vh`, control default rounding); all
+functions, settings and navigation keep working.
 
 ## Install
 
@@ -156,6 +192,7 @@ uci commit luci
 
 | Version | Date       | Notes                          |
 |---------|------------|--------------------------------|
+| 1.1.1   | 2026-10-08 | Browser CSS fallbacks & compat matrix |
 | 1.1.0   | 2026-10-08 | Theme settings page (UCI)      |
 | 1.0.0   | 2026-10-08 | Initial Fluent Design release  |
 

@@ -7,9 +7,11 @@
 :root {
 	--primary: #2899f5;
 	/* hover/active stay derived from --primary in cascade.css;
-	   tint needs a stronger alpha on dark surfaces. */
-	--primary-tint: color-mix(in srgb, var(--primary) 16%, transparent);
-	--primary-tint-hover: color-mix(in srgb, var(--primary) 26%, transparent);
+	   tint needs a stronger alpha on dark surfaces. Static rgba
+	   fallbacks for browsers without color-mix(); re-derived live
+	   in the @supports block below. */
+	--primary-tint: rgba(40,153,245,.16);
+	--primary-tint-hover: rgba(40,153,245,.26);
 
 	--success: #6bb700;
 	--warning: #fce100;
@@ -40,6 +42,14 @@
 	--shadow-28: 0 14px 32px rgba(0,0,0,.55), 0 6px 14px rgba(0,0,0,.45);
 
 	--dropdown-arrow: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 20 20'%3E%3Cpath fill='%23c8c6c4' d='M5.3 7.3a1 1 0 0 1 1.4 0L10 10.6l3.3-3.3a1 1 0 1 1 1.4 1.4l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 0 1 0-1.4z'/%3E%3C/svg%3E");
+}
+
+/* Re-derive dark tints live from --primary where color-mix() exists. */
+@supports (background: color-mix(in srgb, red, blue)) {
+	:root {
+		--primary-tint: color-mix(in srgb, var(--primary) 16%, transparent);
+		--primary-tint-hover: color-mix(in srgb, var(--primary) 26%, transparent);
+	}
 }
 
 body {
