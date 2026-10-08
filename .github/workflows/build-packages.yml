@@ -1,0 +1,163 @@
+name: Build packages (SDK)
+
+# Reusable workflow: builds the installable package with the OFFICIAL
+# OpenWrt SDK of every maintained release line (24.10 -> .ipk via opkg,
+# 25.12 -> .apk), proving the luci.mk packaging contract (ucode templates,
+# media, conffile, menu.d/acl.d registration) really assembles. The two
+# resulting packages are uploaded as run artifacts. Called by both the
+# push/PR patrol workflow and the tag release workflow.
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  sdk-build:
+    name: build ${{ matrix.label }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { label: 'OpenWrt 24.10 (.ipk)', version: '24.10.8', ext: 'ipk' }
+          - { label: 'OpenWrt 25.12 (.apk)', version: '25.12.5', ext: 'apk' }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache SDK tarball
+        uses: actions/cache@v4
+        with:
+          path: /tmp/sdk-cache
+          key: openwrt-sdk-${{ matrix.version }}
+
+      - name: Download official OpenWrt SDK (${{ matrix.version }})
+        run: |
+          set -euo pipefail
+          rel="releases/${{ matrix.version }}/targets/x86/64"
+          verpat="$(printf '%s' '${{ matrix.version }}' | sed 's/\./\\./g')"
+          sdk="$(curl -fsSL "https://downloads.openwrt.org/$rel/" \
+            | grep -oE "openwrt-sdk-${verpat}-x86-64_[^\"<>]*\.tar\.(zst|xz)" \
+            | head -n1)"
+          test -n "$sdk"
+          echo "Using SDK: $sdk"
+          mkdir -p /tmp/sdk-cache
+          f="/tmp/sdk-cache/$sdk"
+          # ~280 MB over links that occasionally throttle/reset: per-attempt
+          # stall detection plus resumable retries across mirrors.
+          mirrors=(
+            "https://downloads.openwrt.org/$rel/$sdk"
+            "https://ftp.acc.umu.se/mirror/openwrt.org/$rel/$sdk"
+          )
+          ok=
+          for attempt in 1 2 3 4 5 6; do
+            for url in "${mirrors[@]}"; do
+              echo "attempt $attempt: $url"
+              if curl -fL --connect-timeout 20 --max-time 1200 \
+                   --speed-time 60 --speed-limit 20480 \
+                   --retry 2 --retry-all-errors -C - \
+                   "$url" -o "$f.part"; then
+                mv "$f.part" "$f"
+                ok=1
+                break 2
+              fi
+              sleep 5
+            done
+          done
+          test -n "$ok"
+          ls -lh "$f"
+          mkdir sdk
+          tar -xaf "$f" -C sdk --strip-components=1
+
+      - name: Stage package inside SDK tree
+        run: |
+          set -euo pipefail
+          # LUCI_NAME derives from the directory name (luci.mk), so the
+          # capitalization must match the Package/ define in the Makefile.
+          pkg="sdk/package/luci-theme-FluentDesign"
+          mkdir -p "$pkg"
+          cp -a Makefile ucode htdocs root "$pkg"/
+
+      - name: Build package with luci feed
+        run: |
+          set -euo pipefail
+          cd sdk
+          # feeds.conf.default shipped with the SDK pins the matching
+          # openwrt-xx.yy feed commits; use shallow clones to save time.
+          sed -i 's/^src-git-full /src-git /' feeds.conf.default
+          # "install -a" is required, not just the luci feed: the SDK ships
+          # no core package makefiles at all (no package/utils etc.); ucode,
+          # rpcd, libubox and friends are provided by the pinned "base" feed.
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+          # Generate the SDK default .config first (it is not shipped).
+          # This theme runs on ucode only, so keep lucihttp's Lua binding
+          # off and force the ucode binding plus this package on.
+          make defconfig
+          sed -i 's@^CONFIG_PACKAGE_liblucihttp-lua=.*@# CONFIG_PACKAGE_liblucihttp-lua is not set@' .config
+          grep -q 'CONFIG_PACKAGE_liblucihttp-lua' .config \
+            || echo '# CONFIG_PACKAGE_liblucihttp-lua is not set' >> .config
+          echo 'CONFIG_PACKAGE_liblucihttp-ucode=y' >> .config
+          echo 'CONFIG_PACKAGE_luci-theme-FluentDesign=y' >> .config
+          make defconfig
+          if ! make package/luci-theme-FluentDesign/compile -j1 V=s; then
+            echo '--- download dir ---'
+            ls -la dl/ 2>/dev/null || true
+            echo '--- per-package logs ---'
+            find logs -type f -name '*.txt' 2>/dev/null | while read -r t; do
+              echo "===== $t ====="
+              tail -n 50 "$t"
+            done
+            exit 1
+          fi
+
+      - name: Verify packaged contents
+        run: |
+          set -euo pipefail
+          cd sdk
+          # ipk keeps the mixed-case package name and an "_all" arch tail;
+          # locally built apk drops the arch tail ("<name>-<version>-rN.apk").
+          # The name case is preserved in a local build, so match -i.
+          case '${{ matrix.ext }}' in
+            ipk) pat='luci-theme-FluentDesign_[0-9][^/]*_all\.ipk$' ;;
+            apk) pat='luci-theme-fluentdesign-[0-9][^/]*\.apk$' ;;
+          esac
+          art="$(find bin/packages -type f -name '*.${{ matrix.ext }}' \
+            | grep -Ei "$pat" || true)"
+          echo "Built artifact: $art"
+          test -n "$art"
+          test "$(printf '%s\n' "$art" | wc -l)" -eq 1
+          case "$art" in *.${{ matrix.ext }}) ;; *) echo "unexpected format" >&2; exit 1;; esac
+          # The staged install tree (ipkg-all/... for opkg, .pkgdir for apk)
+          # must carry every file class the package is supposed to ship.
+          for f in \
+            usr/share/ucode/luci/template/themes/fluentdesign/header.ut \
+            usr/share/ucode/luci/template/themes/fluentdesign/sysauth.ut \
+            usr/share/ucode/luci/template/themes/fluentdesign/footer_login.ut \
+            www/luci-static/fluentdesign/css/cascade.css \
+            www/luci-static/fluentdesign/css/dark.css \
+            www/luci-static/resources/view/system/fluentdesign.js \
+            www/luci-static/resources/menu-fluentdesign.js \
+            etc/config/fluentdesign \
+            etc/uci-defaults/30_luci-theme-FluentDesign \
+            usr/share/luci/menu.d/luci-theme-fluentdesign.json \
+            usr/share/rpcd/acl.d/luci-theme-fluentdesign.json
+          do
+            if ! find build_dir -type f -path "*/$f" | grep -q .; then
+              echo "missing from staging: $f" >&2
+              exit 1
+            fi
+          done
+          echo "all packaged paths present"
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: luci-theme-FluentDesign-${{ matrix.version }}
+          if-no-files-found: error
+          path: |
+            sdk/bin/packages/**/*.ipk
+            sdk/bin/packages/**/*.apk
