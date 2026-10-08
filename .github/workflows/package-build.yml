@@ -136,13 +136,14 @@ jobs:
           set -euo pipefail
           cd sdk
           # ipk keeps the mixed-case package name and an "_all" arch tail;
-          # apk normalizes to lowercase "<name>-<version>-r<pkgrel>.apk".
+          # locally built apk drops the arch tail ("<name>-<version>-rN.apk").
+          # The name case is preserved in a local build, so match -i.
           case '${{ matrix.ext }}' in
             ipk) pat='luci-theme-FluentDesign_[0-9][^/]*_all\.ipk$' ;;
             apk) pat='luci-theme-fluentdesign-[0-9][^/]*\.apk$' ;;
           esac
           art="$(find bin/packages -type f -name '*.${{ matrix.ext }}' \
-            | grep -E "$pat" || true)"
+            | grep -Ei "$pat" || true)"
           echo "Built artifact: $art"
           test -n "$art"
           test "$(printf '%s\n' "$art" | wc -l)" -eq 1
