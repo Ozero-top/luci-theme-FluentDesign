@@ -87,7 +87,7 @@ jobs:
           test -n "$ok"
           ls -lh "$f"
           mkdir sdk
-          tar -af "$f" -C sdk --strip-components=1
+          tar -xaf "$f" -C sdk --strip-components=1
 
       - name: Stage package inside SDK tree
         run: |
