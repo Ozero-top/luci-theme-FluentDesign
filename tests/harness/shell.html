@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>FD shell harness</title>
+<link rel="stylesheet" href="/luci-static/fluentdesign/css/cascade.css">
+<style>
+	/* mirror the personalization <style> block injected by header.ut */
+	:root { --primary:#0078d4; --font-scale:1; --acrylic-blur:30px; --acrylic-opacity:0.7; }
+	#harness-report { position: fixed; top: 8px; right: 8px; width: 320px;
+		max-height: 90vh; overflow: auto; font: 12px/1.5 monospace; z-index: 99999;
+		background: #111; color: #9f9; padding: 10px; border-radius: 8px; }
+	#harness-report .fail { color: #ff7676; }
+	#harness-report h4 { color: #fff; margin: 0 0 6px; }
+	.fd-tall-card { background:#fff; border:1px solid #ddd; border-radius:8px;
+		padding:1rem; margin-bottom:1rem; }
+</style>
+</head>
+<body class="logged-in" data-page="admin-system-fluentdesign">
+<div class="main">
+	<div class="main-left" id="mainmenu" style="display:none">
+		<div class="sidenav-header">
+			<a class="brand" href="/"><span class="brand-text">iStoreOS</span></a>
+		</div>
+	</div>
+	<div class="main-right">
+		<header class="app-header">
+			<div class="fill"><div class="container">
+				<div class="flex1">
+					<button type="button" class="showSide" aria-controls="mainmenu" aria-expanded="false">x</button>
+					<a class="brand" href="/">iStoreOS</a>
+				</div>
+				<div class="status" id="indicators"></div>
+			</div></div>
+		</header>
+		<div class="darkMask"></div>
+		<div id="maincontent">
+			<div class="container">
+				<div id="tabmenu" style="display:none"></div>
+				<div id="view"></div>
+			</div>
+		</div>
+		<footer class="mobile-hide">
+			<div class="footer-content">
+				<ul class="breadcrumb" id="modemenu" style="display:none"></ul>
+			</div>
+		</footer>
+	</div>
+</div>
+<div id="harness-report"><h4>shell</h4><div id="harness-log"></div></div>
+
+<script>window.TR = {};</script>
+<script src="/luci-static/resources/cbi.js"></script>
+<script src="/luci-static/resources/luci.js?v=h4"></script>
+<script>
+'use strict';
+sessionStorage.setItem('luci-session-store', JSON.stringify({
+	'00000000000000000000000000000000': { features: {}, preload: [], rpcBaseURL: '/ubus/' }
+}));
+window.L = new LuCI({
+	scriptname: '/cgi-bin/luci',
+	resource: '/luci-static/resources',
+	media: '/luci-static/fluentdesign',
+	ubuspath: '/ubus',
+	sessionid: '00000000000000000000000000000000',
+	nodespec: { satisfied: true, readonly: false }
+});
+
+(async function() {
+	const log = document.getElementById('harness-log');
+	const results = [];
+	function check(name, cond, extra) {
+		results.push({ name, ok: !!cond, extra });
+		const d = document.createElement('div');
+		d.className = cond ? 'pass' : 'fail';
+		d.textContent = (cond ? 'PASS ' : 'FAIL ') + name + (extra !== undefined ? '  [' + extra + ']' : '');
+		log.appendChild(d);
+	}
+
+	const request = await L.require('request');
+	request.post = function() {
+		return Promise.resolve({ ok: true, status: 200,
+			json() { return { jsonrpc: '2.0', id: 1, result: [0, {}] }; } });
+	};
+
+	const ui = await L.require('ui');
+
+	/* ---- mock menu tree: mirrors iStoreOS (many submenu entries) ---- */
+	function node(name, title, children) {
+		return { name, title, children: children || {}, sortOrder: 0, satisfied: true };
+	}
+	const sysChildren = {};
+	['System|系统','Admin|管理权','Software|软件包','Startup|启动项','Scheduled Tasks|计划任务',
+	 'Mount Points|挂载点','Disk Manage|磁盘管理','LEDs|LED 配置',
+	 'Argon|Argon 主题设置','FluentDesign|FluentDesign 主题设置'].forEach(function(t, i) {
+		var p = t.split('|');
+		sysChildren[p[0].toLowerCase().replace(/\s+/g, '_')] = node('n' + i, p[1]);
+	});
+	// Real LuCI tree: top level = modes ("admin" ...), the sidebar is the
+	// active mode's children.
+	const admin = node('admin', 'Administration', {
+		home: node('home', 'Home'),
+		status: node('status', 'Status', {
+			overview: node('overview', 'Overview')
+		}),
+		system: node('system', 'System', sysChildren),
+		services: node('services', 'Services', {
+			s1: node('s1', 'Service One')
+		}),
+		logout: node('logout', 'Log_out')
+	});
+	const tree = node('root', 'root', { admin });
+	ui.menu.load = function() { return Promise.resolve(tree); };
+	/* header.ut-driven pages always carry these; the standalone harness
+	 * does not go through the dispatcher, so provide empty paths. */
+	L.env.dispatchpath = L.env.dispatchpath || [];
+	L.env.requestpath = L.env.requestpath || [];
+
+	/* fill the content area with a tall view ending in a save bar */
+	const view = document.getElementById('view');
+	let html = '<h2>FluentDesign 主题设置</h2>';
+	for (let i = 0; i < 14; i++)
+		html += '<div class="fd-tall-card" style="height:90px">card ' + i + '</div>';
+	html += '<div class="cbi-page-actions" id="savebar" style="height:52px">save bar</div>';
+	view.innerHTML = html;
+
+	/* boot the real theme menu module */
+	await L.require('menu-fluentdesign');
+	for (let i = 0; i < 50 && !document.querySelector('#mainmenu .nav'); i++)
+		await new Promise(r => setTimeout(r, 100));
+	await new Promise(r => setTimeout(r, 200));
+
+	/* ============ menu structure ============ */
+	const nav = document.querySelector('#mainmenu .nav');
+	check('nav rendered', !!nav);
+	const subLinks = Array.from(document.querySelectorAll('#mainmenu .slide-menu li a'));
+	check('submenu links present', subLinks.length >= 10, subLinks.length);
+	const badClass = subLinks.filter(a => /\b(menu|food)\b/.test(a.className));
+	check('submenu links carry no .menu/.food', badClass.length === 0,
+		badClass.map(a => a.className + ':' + a.textContent).join('; '));
+
+	/* leading-icon ::before must exist on top level, never on submenu */
+	function maskOf(el) {
+		const s = getComputedStyle(el, '::before');
+		return (s.maskImage || '') + '|' + (s.webkitMaskImage || '');
+	}
+	const subBefore = subLinks.map(maskOf);
+	check('submenu ::before has no mask', subBefore.every(m => /^none\|none$|^\|$/.test(m)),
+		subBefore.slice(0, 3).join(' ; '));
+	const sysTop = document.querySelector('#mainmenu .nav > li > a.menu[data-title="System"]');
+	check('top-level group rendered', !!sysTop);
+	if (sysTop) {
+		const topMask = maskOf(sysTop);
+		check('top-level ::before has icon mask', /svg|data:/.test(topMask), topMask.slice(0, 80));
+		/* expand the System group */
+		sysTop.click();
+		await new Promise(r => setTimeout(r, 260));
+		const ul = sysTop.nextElementSibling;
+		check('submenu expands', ul && ul.classList.contains('active') &&
+			ul.getBoundingClientRect().height > 50, ul && ul.getBoundingClientRect().height);
+	}
+
+	/* submenu labels must not be overlapped by an icon box: the link's
+	 * text starts at its content box (no icon column), i.e. its first
+	 * client rect begins at the padding edge. */
+	const sample = subLinks.find(a => /软件包|Software/.test(a.textContent)) || subLinks[0];
+	if (sample) {
+		const r = sample.getBoundingClientRect();
+		const liR = sample.closest('li').getBoundingClientRect();
+		check('submenu text inside its li', r.left >= liR.left - 1 && r.right <= liR.right + 1,
+			'text ' + Math.round(r.left) + '-' + Math.round(r.right) + ' li ' + Math.round(liR.left) + '-' + Math.round(liR.right));
+	}
+
+	/* ============ height chain / scrolling ============ */
+	const vh = window.innerHeight;
+	const ml = document.querySelector('#mainmenu');
+	const mr = document.querySelector('.main-right');
+	check('html fills viewport', document.documentElement.clientHeight === vh);
+	check('sidebar fills viewport height', Math.abs(ml.getBoundingClientRect().height - vh) <= 1,
+		Math.round(ml.getBoundingClientRect().height) + ' vs ' + vh);
+	check('content column fills viewport height', Math.abs(mr.getBoundingClientRect().height - vh) <= 1,
+		Math.round(mr.getBoundingClientRect().height) + ' vs ' + vh);
+	check('document itself does not scroll',
+		document.documentElement.scrollHeight <= vh + 1 && document.body.scrollHeight <= vh + 1,
+		'doc ' + document.documentElement.scrollHeight + ' body ' + document.body.scrollHeight);
+	check('content column is the scroll container', mr.scrollHeight > mr.clientHeight + 20,
+		'scroll ' + mr.scrollHeight + ' client ' + mr.clientHeight);
+
+	mr.scrollTop = mr.scrollHeight;
+	await new Promise(r => setTimeout(r, 100));
+	check('content scrolls', mr.scrollTop > 0, 'scrollTop=' + mr.scrollTop);
+	const bar = document.getElementById('savebar');
+	const br = bar.getBoundingClientRect();
+	check('save bar reachable at bottom',
+		br.top >= 0 && br.bottom <= vh + 1 && br.bottom >= mr.getBoundingClientRect().top,
+		'bottom=' + Math.round(br.bottom));
+	mr.scrollTop = 0;
+
+	const failed = results.filter(r => !r.ok).length;
+	const h = document.createElement('h4');
+	h.textContent = failed === 0 ? 'ALL %d CHECKS PASSED'.format(results.length)
+		: '%d/%d FAILED'.format(failed, results.length);
+	h.style.color = failed ? '#ff7676' : '#7ee787';
+	log.prepend(h);
+	window.__harness = { results, failed };
+})().catch(function(e) {
+	const d = document.createElement('div');
+	d.className = 'fail';
+	d.textContent = 'HARNESS ERROR: ' + (e && e.stack ? e.stack : e);
+	document.getElementById('harness-log').appendChild(d);
+});
+</script>
+</body>
+</html>

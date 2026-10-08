@@ -12,6 +12,7 @@ on:
       - '.github/workflows/luci-compat.yml'
       - 'tests/**'
       - 'htdocs/luci-static/resources/view/system/**'
+      - 'htdocs/luci-static/resources/menu-fluentdesign.js'
       - 'htdocs/luci-static/fluentdesign/css/**'
   pull_request:
   workflow_dispatch:
@@ -64,16 +65,24 @@ jobs:
           cat /tmp/fd-http.log >&2
           exit 1
 
-      - name: Run browser harness
+      - name: Run settings-view browser harness
         run: >
           node tests/run-browser-tests.mjs
           http://127.0.0.1:8765/index.html
           /tmp/fd-harness-${{ matrix.branch }}.png
+
+      - name: Run layout-shell browser harness
+        run: >
+          node tests/run-browser-tests.mjs
+          http://127.0.0.1:8765/shell.html
+          /tmp/fd-shell-${{ matrix.branch }}.png
 
       - name: Upload failure screenshot
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: harness-${{ matrix.branch }}
-          path: /tmp/fd-harness-${{ matrix.branch }}.png
+          path: |
+            /tmp/fd-harness-${{ matrix.branch }}.png
+            /tmp/fd-shell-${{ matrix.branch }}.png
           if-no-files-found: ignore

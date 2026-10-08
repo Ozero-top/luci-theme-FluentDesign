@@ -103,6 +103,7 @@
 }
 
 html {
+	height: 100%;
 	font-size: calc(100% * var(--font-scale));
 	-webkit-text-size-adjust: 100%;
 }

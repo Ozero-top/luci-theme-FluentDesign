@@ -179,13 +179,20 @@ return baseclass.extend({
 			var hasChildren = submenu.children.length > 0;
 
 			var slideClass = hasChildren ? 'slide' : null;
-			var menuClass = hasChildren ? 'menu' : 'food';
-
+			// The .menu/.food classes carry the leading mask icon and the
+			// chevron via CSS descendant selectors, so they are top-level
+			// only: on submenu links the absolutely positioned ::before
+			// would overlap the first character.
+			var linkClasses = [];
+			if (currentLevel === 1)
+				linkClasses.push(hasChildren ? 'menu' : 'food');
 			if (isActive) {
 				menuContainer.classList.add('active');
-				slideClass += ' active';
-				menuClass += ' active';
+				if (slideClass)
+					slideClass += ' active';
+				linkClasses.push('active');
 			}
+			var menuClass = linkClasses.length ? linkClasses.join(' ') : null;
 
 			menuContainer.appendChild(E('li', { 'class': slideClass }, [
 				E('a', {
