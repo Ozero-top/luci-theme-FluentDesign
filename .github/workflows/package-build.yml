@@ -103,10 +103,13 @@ jobs:
           set -euo pipefail
           cd sdk
           # feeds.conf.default shipped with the SDK pins the matching
-          # openwrt-xx.yy luci branch; use a shallow clone to save time.
+          # openwrt-xx.yy feed commits; use shallow clones to save time.
           sed -i 's/^src-git-full /src-git /' feeds.conf.default
-          ./scripts/feeds update luci
-          ./scripts/feeds install luci-base
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+          echo '--- ucode presence in SDK tree ---'
+          find package -type d -name 'ucode' -o -type f -path '*ucode*/Makefile' | head
+          grep -rl 'define Package/libucode' package | head
           # Generate the SDK default .config first (it is not shipped),
           # then shape it: SDK defaults enable lucihttp's Lua binding,
           # whose headers are not staged there (the build dies on
