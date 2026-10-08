@@ -107,9 +107,12 @@ jobs:
           sed -i 's/^src-git-full /src-git /' feeds.conf.default
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-          echo '--- ucode presence in SDK tree ---'
-          find package -type d -name 'ucode' -o -type f -path '*ucode*/Makefile' | head
-          grep -rl 'define Package/libucode' package | head
+          echo '--- SDK content diagnostics ---'
+          echo 'package/utils sample:'; ls package/utils | head -40
+          echo 'ucode makefiles in tree:'; find package -name Makefile -path '*ucode*' || true
+          echo 'ucode headers in staging:'; find staging_dir -path '*ucode*' -name '*.h' 2>/dev/null | head
+          echo 'ucode prebuilt packages:'; find bin -iname '*ucode*' 2>/dev/null | head
+          echo 'libubox sanity:'; find staging_dir -name 'libubox.h' 2>/dev/null | head -2
           # Generate the SDK default .config first (it is not shipped),
           # then shape it: SDK defaults enable lucihttp's Lua binding,
           # whose headers are not staged there (the build dies on
