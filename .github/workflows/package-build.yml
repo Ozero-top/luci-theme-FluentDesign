@@ -107,13 +107,12 @@ jobs:
           sed -i 's/^src-git-full /src-git /' feeds.conf.default
           ./scripts/feeds update luci
           ./scripts/feeds install luci-base
-          # Selecting the package first makes defconfig pull its whole
-          # build dependency chain (lucihttp, rpcd-mod-luci, ...) into
-          # .config; otherwise their compile targets fail instantly.
-          # The SDK ships a release-image .config whose lucihttp default
-          # enables the Lua binding; its headers are not staged in the
-          # SDK and the build dies on <lua.h>. This theme is pure ucode,
-          # so force the Lua variant off and the ucode variant on.
+          # Generate the SDK default .config first (it is not shipped),
+          # then shape it: SDK defaults enable lucihttp's Lua binding,
+          # whose headers are not staged there (the build dies on
+          # <lua.h>). This theme is pure ucode, so force the Lua variant
+          # off and the ucode variant + this package on.
+          make defconfig
           sed -i 's@^CONFIG_PACKAGE_liblucihttp-lua=.*@# CONFIG_PACKAGE_liblucihttp-lua is not set@' .config
           grep -q 'CONFIG_PACKAGE_liblucihttp-lua' .config \
             || echo '# CONFIG_PACKAGE_liblucihttp-lua is not set' >> .config
