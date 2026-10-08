@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0a3a63"/>
+      <stop offset="0.5" stop-color="#0067bd"/>
+      <stop offset="1" stop-color="#0078d4"/>
+    </linearGradient>
+    <radialGradient id="glow1" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#62b5ff" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#62b5ff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ribbon" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1920" height="1080" fill="url(#bg)"/>
+
+  <circle cx="1500" cy="120" r="520" fill="url(#glow1)"/>
+  <circle cx="1750" cy="900" r="620" fill="url(#glow2)"/>
+  <circle cx="120" cy="980" r="480" fill="url(#glow1)" opacity="0.7"/>
+
+  <path d="M-100 780 C 420 560, 760 940, 1240 700 C 1520 560, 1760 560, 2020 420"
+        fill="none" stroke="url(#ribbon)" stroke-width="120"/>
+  <path d="M-100 900 C 380 700, 820 1020, 1300 800 C 1580 670, 1780 690, 2020 560"
+        fill="none" stroke="url(#ribbon)" stroke-width="60" opacity="0.8"/>
+</svg>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180" role="img" aria-label="FluentDesign">
+  <defs>
+    <linearGradient id="fd-atg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2899f5"/>
+      <stop offset="0.55" stop-color="#0078d4"/>
+      <stop offset="1" stop-color="#005a9e"/>
+    </linearGradient>
+  </defs>
+  <rect width="180" height="180" rx="40" fill="url(#fd-atg)"/>
+  <rect x="0" y="0" width="180" height="90" rx="40" fill="#ffffff" opacity="0.10"/>
+  <path d="M56 42h24v35h39v24H80v37H56z" fill="#ffffff"/>
+</svg>

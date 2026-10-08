@@ -1,0 +1,13 @@
+{
+	"admin/system/fluentdesign": {
+		"title": "FluentDesign 主题设置",
+		"order": 95,
+		"action": {
+			"type": "view",
+			"path": "system/fluentdesign"
+		},
+		"depends": {
+			"acl": [ "luci-theme-fluentdesign" ]
+		}
+	}
+}

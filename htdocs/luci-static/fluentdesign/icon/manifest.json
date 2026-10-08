@@ -1,0 +1,23 @@
+{
+	"name": "OpenWrt LuCI - FluentDesign",
+	"short_name": "LuCI",
+	"description": "Microsoft Fluent Design theme for LuCI",
+	"start_url": "/",
+	"display": "standalone",
+	"background_color": "#f3f2f1",
+	"theme_color": "#0078d4",
+	"icons": [
+		{
+			"src": "/luci-static/fluentdesign/icon/favicon.svg",
+			"sizes": "any",
+			"type": "image/svg+xml",
+			"purpose": "any"
+		},
+		{
+			"src": "/luci-static/fluentdesign/icon/apple-touch.svg",
+			"sizes": "180x180",
+			"type": "image/svg+xml",
+			"purpose": "maskable"
+		}
+	]
+}
