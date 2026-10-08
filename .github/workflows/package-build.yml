@@ -107,6 +107,10 @@ jobs:
           sed -i 's/^src-git-full /src-git /' feeds.conf.default
           ./scripts/feeds update luci
           ./scripts/feeds install luci-base
+          # Selecting the package first makes defconfig pull its whole
+          # build dependency chain (lucihttp, rpcd-mod-luci, ...) into
+          # .config; otherwise their compile targets fail instantly.
+          echo 'CONFIG_PACKAGE_luci-theme-FluentDesign=y' >> .config
           make defconfig
           make package/luci-theme-FluentDesign/compile -j"$(nproc)"
 
