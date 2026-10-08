@@ -34,7 +34,7 @@ jobs:
   sdk-build:
     name: build ${{ matrix.label }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -45,19 +45,49 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Cache SDK tarball
+        uses: actions/cache@v4
+        with:
+          path: /tmp/sdk-cache
+          key: openwrt-sdk-${{ matrix.version }}
+
       - name: Download official OpenWrt SDK (${{ matrix.version }})
         run: |
           set -euo pipefail
-          base="https://downloads.openwrt.org/releases/${{ matrix.version }}/targets/x86/64"
+          rel="releases/${{ matrix.version }}/targets/x86/64"
           verpat="$(printf '%s' '${{ matrix.version }}' | sed 's/\./\\./g')"
-          sdk="$(curl -fsSL "$base/" \
+          sdk="$(curl -fsSL "https://downloads.openwrt.org/$rel/" \
             | grep -oE "openwrt-sdk-${verpat}-x86-64_[^\"<>]*\.tar\.(zst|xz)" \
             | head -n1)"
           test -n "$sdk"
           echo "Using SDK: $sdk"
-          curl -fL --retry 3 "$base/$sdk" -o "/tmp/sdk.${sdk##*.}"
+          mkdir -p /tmp/sdk-cache
+          f="/tmp/sdk-cache/$sdk"
+          # ~280 MB over links that occasionally throttle/reset: per-attempt
+          # stall detection plus resumable retries across mirrors.
+          mirrors=(
+            "https://downloads.openwrt.org/$rel/$sdk"
+            "https://ftp.acc.umu.se/mirror/openwrt.org/$rel/$sdk"
+          )
+          ok=
+          for attempt in 1 2 3 4 5 6; do
+            for url in "${mirrors[@]}"; do
+              echo "attempt $attempt: $url"
+              if curl -fL --connect-timeout 20 --max-time 1200 \
+                   --speed-time 60 --speed-limit 20480 \
+                   --retry 2 --retry-all-errors -C - \
+                   "$url" -o "$f.part"; then
+                mv "$f.part" "$f"
+                ok=1
+                break 2
+              fi
+              sleep 5
+            done
+          done
+          test -n "$ok"
+          ls -lh "$f"
           mkdir sdk
-          tar -af "/tmp/sdk.${sdk##*.}" -C sdk --strip-components=1
+          tar -af "$f" -C sdk --strip-components=1
 
       - name: Stage package inside SDK tree
         run: |
@@ -73,7 +103,8 @@ jobs:
           set -euo pipefail
           cd sdk
           # feeds.conf.default shipped with the SDK pins the matching
-          # openwrt-xx.yy luci branch.
+          # openwrt-xx.yy luci branch; use a shallow clone to save time.
+          sed -i 's/^src-git-full /src-git /' feeds.conf.default
           ./scripts/feeds update luci
           ./scripts/feeds install luci-base
           make defconfig
