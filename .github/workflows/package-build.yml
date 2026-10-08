@@ -105,19 +105,14 @@ jobs:
           # feeds.conf.default shipped with the SDK pins the matching
           # openwrt-xx.yy feed commits; use shallow clones to save time.
           sed -i 's/^src-git-full /src-git /' feeds.conf.default
+          # "install -a" is required, not just the luci feed: the SDK ships
+          # no core package makefiles at all (no package/utils etc.); ucode,
+          # rpcd, libubox and friends are provided by the pinned "base" feed.
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-          echo '--- SDK content diagnostics ---'
-          echo 'package/utils sample:'; ls package/utils | head -40
-          echo 'ucode makefiles in tree:'; find package -name Makefile -path '*ucode*' || true
-          echo 'ucode headers in staging:'; find staging_dir -path '*ucode*' -name '*.h' 2>/dev/null | head
-          echo 'ucode prebuilt packages:'; find bin -iname '*ucode*' 2>/dev/null | head
-          echo 'libubox sanity:'; find staging_dir -name 'libubox.h' 2>/dev/null | head -2
-          # Generate the SDK default .config first (it is not shipped),
-          # then shape it: SDK defaults enable lucihttp's Lua binding,
-          # whose headers are not staged there (the build dies on
-          # <lua.h>). This theme is pure ucode, so force the Lua variant
-          # off and the ucode variant + this package on.
+          # Generate the SDK default .config first (it is not shipped).
+          # This theme runs on ucode only, so keep lucihttp's Lua binding
+          # off and force the ucode binding plus this package on.
           make defconfig
           sed -i 's@^CONFIG_PACKAGE_liblucihttp-lua=.*@# CONFIG_PACKAGE_liblucihttp-lua is not set@' .config
           grep -q 'CONFIG_PACKAGE_liblucihttp-lua' .config \
@@ -125,8 +120,6 @@ jobs:
           echo 'CONFIG_PACKAGE_liblucihttp-ucode=y' >> .config
           echo 'CONFIG_PACKAGE_luci-theme-FluentDesign=y' >> .config
           make defconfig
-          echo '--- selection check ---'
-          grep -n 'lucihttp\|FluentDesign' .config || true
           if ! make package/luci-theme-FluentDesign/compile -j1 V=s; then
             echo '--- download dir ---'
             ls -la dl/ 2>/dev/null || true
