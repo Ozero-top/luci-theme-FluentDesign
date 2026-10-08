@@ -1,0 +1,74 @@
+name: LuCI compatibility matrix
+
+# Loads the real luci-base core JS (cbi.js/luci.js/form.js/ui.js/uci.js ...)
+# from each maintained openwrt/luci branch and runs the theme settings-view
+# browser harness against it. A red stable-branch job means upstream changed
+# a contract this theme relies on and the code must adapt before release.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/luci-compat.yml'
+      - 'tests/**'
+      - 'htdocs/luci-static/resources/view/system/**'
+      - 'htdocs/luci-static/fluentdesign/css/**'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  settings-view:
+    name: settings view on luci/${{ matrix.branch }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { branch: openwrt-22.03, experimental: false }
+          - { branch: openwrt-23.05, experimental: false }
+          - { branch: openwrt-24.10, experimental: false }
+          - { branch: openwrt-25.12, experimental: false }
+          - { branch: master,       experimental: true  }
+    # master is an early-warning canary: report failures without blocking.
+    continue-on-error: ${{ matrix.experimental }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Playwright and Chromium
+        working-directory: tests
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Assemble site tree with real luci/${{ matrix.branch }} core
+        run: bash tests/assemble-site.sh '${{ matrix.branch }}' site
+
+      - name: Start static server
+        run: |
+          python3 -m http.server 8765 --directory site >/tmp/fd-http.log 2>&1 &
+          for i in $(seq 1 40); do
+            curl -sf http://127.0.0.1:8765/index.html >/dev/null && exit 0
+            sleep 0.5
+          done
+          echo 'static server did not come up' >&2
+          cat /tmp/fd-http.log >&2
+          exit 1
+
+      - name: Run browser harness
+        run: >
+          node tests/run-browser-tests.mjs
+          http://127.0.0.1:8765/index.html
+          /tmp/fd-harness-${{ matrix.branch }}.png
+
+      - name: Upload failure screenshot
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: harness-${{ matrix.branch }}
+          path: /tmp/fd-harness-${{ matrix.branch }}.png
+          if-no-files-found: ignore

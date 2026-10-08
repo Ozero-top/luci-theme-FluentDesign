@@ -1,0 +1,12 @@
+{
+  "name": "fluentdesign-theme-tests",
+  "private": true,
+  "description": "Browser compatibility harness for luci-theme-FluentDesign",
+  "type": "module",
+  "scripts": {
+    "test": "node run-browser-tests.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.48.0"
+  }
+}
