@@ -110,10 +110,18 @@ jobs:
           # Selecting the package first makes defconfig pull its whole
           # build dependency chain (lucihttp, rpcd-mod-luci, ...) into
           # .config; otherwise their compile targets fail instantly.
+          # The SDK ships a release-image .config whose lucihttp default
+          # enables the Lua binding; its headers are not staged in the
+          # SDK and the build dies on <lua.h>. This theme is pure ucode,
+          # so force the Lua variant off and the ucode variant on.
+          sed -i 's@^CONFIG_PACKAGE_liblucihttp-lua=.*@# CONFIG_PACKAGE_liblucihttp-lua is not set@' .config
+          grep -q 'CONFIG_PACKAGE_liblucihttp-lua' .config \
+            || echo '# CONFIG_PACKAGE_liblucihttp-lua is not set' >> .config
+          echo 'CONFIG_PACKAGE_liblucihttp-ucode=y' >> .config
           echo 'CONFIG_PACKAGE_luci-theme-FluentDesign=y' >> .config
           make defconfig
           echo '--- selection check ---'
-          grep -n 'FluentDesign' .config || true
+          grep -n 'lucihttp\|FluentDesign' .config || true
           if ! make package/luci-theme-FluentDesign/compile -j1 V=s; then
             echo '--- download dir ---'
             ls -la dl/ 2>/dev/null || true
