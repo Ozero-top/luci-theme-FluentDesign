@@ -48,14 +48,14 @@ jobs:
       - name: Assemble site tree with real luci/${{ matrix.branch }} core
         run: bash tests/assemble-site.sh '${{ matrix.branch }}' site
 
-      - name: Start static server
+      - name: Start harness server
         run: |
-          python3 -m http.server 8765 --directory site >/tmp/fd-http.log 2>&1 &
+          python3 tests/serve-harness.py site 8765 >/tmp/fd-http.log 2>&1 &
           for i in $(seq 1 40); do
             curl -sf http://127.0.0.1:8765/index.html >/dev/null && exit 0
             sleep 0.5
           done
-          echo 'static server did not come up' >&2
+          echo 'harness server did not come up' >&2
           cat /tmp/fd-http.log >&2
           exit 1
 

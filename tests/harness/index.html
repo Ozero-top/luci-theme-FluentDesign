@@ -47,12 +47,10 @@ window.L = new LuCI({
 		log.appendChild(d);
 	}
 
-	await L.require('ui');
-	await L.require('form');
+	/* Install the fake ubus BEFORE requiring any other module: LuCI
+	 * construction / module initialization may fire startup RPCs early.
+	 * (serve-harness.py provides a same-shape POST safety net as well.) */
 	const request = await L.require('request');
-	const uci = await L.require('uci');
-
-	/* ---- fake ubus over request.post ---- */
 	function reply(m) {
 		if (m.method === 'list')
 			return { jsonrpc: '2.0', id: m.id, result: {} };
@@ -69,6 +67,10 @@ window.L = new LuCI({
 			json() { return Array.isArray(data) ? out : out[0]; }
 		});
 	};
+
+	await L.require('ui');
+	await L.require('form');
+	const uci = await L.require('uci');
 
 	/* ---- fake UCI state ---- */
 	const state = {
