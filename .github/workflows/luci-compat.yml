@@ -15,6 +15,11 @@ on:
       - 'htdocs/luci-static/fluentdesign/css/**'
   pull_request:
   workflow_dispatch:
+  # Weekly upstream drift patrol: even with no pushes, re-run against the
+  # live branches every Monday 03:17 UTC (paths filter does not apply to
+  # scheduled runs).
+  schedule:
+    - cron: '17 3 * * 1'
 
 permissions:
   contents: read

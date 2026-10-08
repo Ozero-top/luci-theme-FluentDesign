@@ -1,0 +1,122 @@
+name: Real package build
+
+# Builds the installable package with the OFFICIAL OpenWrt SDK of every
+# maintained release line (24.10 -> .ipk via opkg, 25.12 -> .apk), proving
+# the luci.mk packaging contract (ucode templates, media, conffile,
+# menu.d/acl.d registration) really assembles. The resulting package is
+# uploaded as a build artifact.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/package-build.yml'
+      - 'Makefile'
+      - 'ucode/**'
+      - 'htdocs/**'
+      - 'root/**'
+  pull_request:
+    paths:
+      - '.github/workflows/package-build.yml'
+      - 'Makefile'
+      - 'ucode/**'
+      - 'htdocs/**'
+      - 'root/**'
+  workflow_dispatch:
+  # Weekly packaging patrol every Monday 04:17 UTC.
+  schedule:
+    - cron: '17 4 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  sdk-build:
+    name: build ${{ matrix.label }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { label: 'OpenWrt 24.10 (.ipk)', version: '24.10.8', ext: 'ipk' }
+          - { label: 'OpenWrt 25.12 (.apk)', version: '25.12.5', ext: 'apk' }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download official OpenWrt SDK (${{ matrix.version }})
+        run: |
+          set -euo pipefail
+          base="https://downloads.openwrt.org/releases/${{ matrix.version }}/targets/x86/64"
+          verpat="$(printf '%s' '${{ matrix.version }}' | sed 's/\./\\./g')"
+          sdk="$(curl -fsSL "$base/" \
+            | grep -oE "openwrt-sdk-${verpat}-x86-64_[^\"<>]*\.tar\.(zst|xz)" \
+            | head -n1)"
+          test -n "$sdk"
+          echo "Using SDK: $sdk"
+          curl -fL --retry 3 "$base/$sdk" -o "/tmp/sdk.${sdk##*.}"
+          mkdir sdk
+          tar -af "/tmp/sdk.${sdk##*.}" -C sdk --strip-components=1
+
+      - name: Stage package inside SDK tree
+        run: |
+          set -euo pipefail
+          # LUCI_NAME derives from the directory name (luci.mk), so the
+          # capitalization must match the Package/ define in the Makefile.
+          pkg="sdk/package/luci-theme-FluentDesign"
+          mkdir -p "$pkg"
+          cp -a Makefile ucode htdocs root "$pkg"/
+
+      - name: Build package with luci feed
+        run: |
+          set -euo pipefail
+          cd sdk
+          # feeds.conf.default shipped with the SDK pins the matching
+          # openwrt-xx.yy luci branch.
+          ./scripts/feeds update luci
+          ./scripts/feeds install luci-base
+          make defconfig
+          make package/luci-theme-FluentDesign/compile -j"$(nproc)"
+
+      - name: Verify packaged contents
+        run: |
+          set -euo pipefail
+          cd sdk
+          art="$(find bin/packages -type f \
+            \( -name '*.ipk' -o -name '*.apk' \) \
+            | grep -E 'luci-theme-FluentDesign_[0-9][^/]*_all\.(ipk|apk)$')"
+          echo "Built artifact: $art"
+          test -n "$art"
+          test "$(printf '%s\n' "$art" | wc -l)" -eq 1
+          case "$art" in *.${{ matrix.ext }}) ;; *) echo "unexpected format" >&2; exit 1;; esac
+          # The staged install tree (ipkg-all/... for opkg, .pkgdir for apk)
+          # must carry every file class the package is supposed to ship.
+          for f in \
+            usr/share/ucode/luci/template/themes/fluentdesign/header.ut \
+            usr/share/ucode/luci/template/themes/fluentdesign/sysauth.ut \
+            usr/share/ucode/luci/template/themes/fluentdesign/footer_login.ut \
+            www/luci-static/fluentdesign/css/cascade.css \
+            www/luci-static/fluentdesign/css/dark.css \
+            www/luci-static/resources/view/system/fluentdesign.js \
+            www/luci-static/resources/menu-fluentdesign.js \
+            etc/config/fluentdesign \
+            etc/uci-defaults/30_luci-theme-FluentDesign \
+            usr/share/luci/menu.d/luci-theme-fluentdesign.json \
+            usr/share/rpcd/acl.d/luci-theme-fluentdesign.json
+          do
+            if ! find build_dir -type f -path "*/$f" | grep -q .; then
+              echo "missing from staging: $f" >&2
+              exit 1
+            fi
+          done
+          echo "all packaged paths present"
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: luci-theme-FluentDesign-${{ matrix.version }}
+          if-no-files-found: error
+          path: |
+            sdk/bin/packages/**/*.ipk
+            sdk/bin/packages/**/*.apk
