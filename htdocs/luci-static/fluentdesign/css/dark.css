@@ -63,7 +63,9 @@ body {
 
 /* shell */
 .main-left {
-	background: var(--bg-surface);
+	background: rgba(43,43,43,var(--acrylic-opacity));
+	-webkit-backdrop-filter: blur(var(--acrylic-blur)) saturate(120%);
+	backdrop-filter: blur(var(--acrylic-blur)) saturate(120%);
 	border-right-color: var(--stroke-card);
 }
 

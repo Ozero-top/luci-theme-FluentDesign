@@ -194,13 +194,19 @@ return baseclass.extend({
 			}
 			var menuClass = linkClasses.length ? linkClasses.join(' ') : null;
 
+			var anchorAttrs = {
+				'href': L.url(url, child.name),
+				'click': (currentLevel === 1) ? ui.createHandlerFn(this, 'handleMenuExpand') : null,
+				'class': menuClass,
+				'data-title': child.title.replace(/ /g, '_')
+			};
+			// Icons are keyed by the stable dispatcher node name, not the
+			// translated title, so localized builds get correct icons.
+			if (currentLevel === 1 && child.name)
+				anchorAttrs['data-nav'] = String(child.name).toLowerCase();
+
 			menuContainer.appendChild(E('li', { 'class': slideClass }, [
-				E('a', {
-					'href': L.url(url, child.name),
-					'click': (currentLevel === 1) ? ui.createHandlerFn(this, 'handleMenuExpand') : null,
-					'class': menuClass,
-					'data-title': child.title.replace(/ /g, '_')
-				}, [_(child.title)]),
+				E('a', anchorAttrs, [_(child.title)]),
 				submenu
 			]));
 		}

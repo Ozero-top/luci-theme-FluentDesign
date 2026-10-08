@@ -421,7 +421,7 @@ return view.extend({
 		/* Card 3: typography & acrylic */
 		var s3 = m.section(form.TypedSection, 'global',
 			_('显示与材质'),
-			_('全局字号按比例缩放整个界面；亚克力参数作用于顶栏、移动端导航抽屉与登录卡片。'));
+			_('全局字号按比例缩放整个界面；亚克力参数作用于顶栏、侧栏（含桌面与移动端）与登录卡片。'));
 		s3.anonymous = true;
 		s3.addremove = false;
 

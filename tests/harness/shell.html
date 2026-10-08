@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <title>FD shell harness</title>
 <link rel="stylesheet" href="/luci-static/fluentdesign/css/cascade.css">
+<link rel="stylesheet" href="/luci-static/fluentdesign/css/dark.css" media="(prefers-color-scheme: dark)">
 <style>
 	/* mirror the personalization <style> block injected by header.ut */
 	:root { --primary:#0078d4; --font-scale:1; --acrylic-blur:30px; --acrylic-opacity:0.7; }
@@ -89,25 +90,32 @@ window.L = new LuCI({
 	function node(name, title, children) {
 		return { name, title, children: children || {}, sortOrder: 0, satisfied: true };
 	}
+	// Localized (Chinese) titles as shipped by iStoreOS/OpenWrt zh builds:
+	// icon masks are keyed by the English data-title, so this exercises the
+	// fallback path that real localized firmware hits.
 	const sysChildren = {};
-	['System|系统','Admin|管理权','Software|软件包','Startup|启动项','Scheduled Tasks|计划任务',
-	 'Mount Points|挂载点','Disk Manage|磁盘管理','LEDs|LED 配置',
-	 'Argon|Argon 主题设置','FluentDesign|FluentDesign 主题设置'].forEach(function(t, i) {
-		var p = t.split('|');
-		sysChildren[p[0].toLowerCase().replace(/\s+/g, '_')] = node('n' + i, p[1]);
+	['系统','快速设置向导','管理权','启动项','计划任务','挂载点','分区扩容',
+	 '磁盘管理','系统控制','进阶设置','内核参数','备份与更新','文件','释放内存',
+	 'Argon 主题设置','重启','关机','FluentDesign 主题设置'].forEach(function(t, i) {
+		sysChildren['c' + i] = node('c' + i, t);
 	});
 	// Real LuCI tree: top level = modes ("admin" ...), the sidebar is the
 	// active mode's children.
 	const admin = node('admin', 'Administration', {
-		home: node('home', 'Home'),
-		status: node('status', 'Status', {
-			overview: node('overview', 'Overview')
+		home: node('home', '首页'),
+		status: node('status', '状态', {
+			overview: node('overview', '概览')
 		}),
-		system: node('system', 'System', sysChildren),
-		services: node('services', 'Services', {
-			s1: node('s1', 'Service One')
+		system: node('system', '系统', sysChildren),
+		opkg: node('opkg', '软件包'),
+		services: node('services', '服务', {
+			s1: node('s1', '服务一')
 		}),
-		logout: node('logout', 'Log_out')
+		network: node('network', '网络', {
+			n1: node('n1', '接口')
+		}),
+		customapp: node('customapp', '第三方插件'),
+		logout: node('logout', '退出')
 	});
 	const tree = node('root', 'root', { admin });
 	ui.menu.load = function() { return Promise.resolve(tree); };
@@ -147,7 +155,8 @@ window.L = new LuCI({
 	const subBefore = subLinks.map(maskOf);
 	check('submenu ::before has no mask', subBefore.every(m => /^none\|none$|^\|$/.test(m)),
 		subBefore.slice(0, 3).join(' ; '));
-	const sysTop = document.querySelector('#mainmenu .nav > li > a.menu[data-title="System"]');
+	const sysTop = Array.from(document.querySelectorAll('#mainmenu .nav > li > a.menu'))
+		.find(a => a.textContent.trim() === '系统');
 	check('top-level group rendered', !!sysTop);
 	if (sysTop) {
 		const topMask = maskOf(sysTop);
@@ -160,10 +169,10 @@ window.L = new LuCI({
 			ul.getBoundingClientRect().height > 50, ul && ul.getBoundingClientRect().height);
 	}
 
-	/* submenu labels must not be overlapped by an icon box: the link's
-	 * text starts at its content box (no icon column), i.e. its first
-	 * client rect begins at the padding edge. */
-	const sample = subLinks.find(a => /软件包|Software/.test(a.textContent)) || subLinks[0];
+	/* submenu labels must not be overlapped by an icon box: sample a link
+	 * from the expanded System <ul> (collapsed lists have zero rects). */
+	const expandedUl = sysTop && sysTop.nextElementSibling;
+	const sample = expandedUl && expandedUl.querySelector('li a');
 	if (sample) {
 		const r = sample.getBoundingClientRect();
 		const liR = sample.closest('li').getBoundingClientRect();
@@ -171,10 +180,37 @@ window.L = new LuCI({
 			'text ' + Math.round(r.left) + '-' + Math.round(r.right) + ' li ' + Math.round(liR.left) + '-' + Math.round(liR.right));
 	}
 
+	/* Icons keyed by stable node name must appear even with Chinese titles;
+	 * unmapped entries fall back to an empty mask (no drawable shape),
+	 * never a solid dot. */
+	function hasShape(mask) { return /circle|path|rect|ellipse|polygon/i.test(mask || ''); }
+	const expectedIcons = {
+		'首页': 'home', '状态': 'status', '系统': 'system', '服务': 'services',
+		'网络': 'network', '软件包': 'opkg', '退出': 'logout'
+	};
+	Object.keys(expectedIcons).forEach(function(label) {
+		const a = Array.from(document.querySelectorAll('#mainmenu .nav > li > a'))
+			.find(x => x.textContent.trim() === label);
+		check('mapped icon for “' + label + '” (' + expectedIcons[label] + ')',
+			!!a && a.getAttribute('data-nav') === expectedIcons[label] &&
+			hasShape(maskOf(a)), a && a.getAttribute('data-nav'));
+	});
+	const unmapped = Array.from(document.querySelectorAll('#mainmenu .nav > li > a'))
+		.find(x => x.textContent.trim() === '第三方插件');
+	check('unmapped entry renders no dot/icon', !!unmapped && !hasShape(maskOf(unmapped)),
+		unmapped && maskOf(unmapped).slice(0, 60));
+
 	/* ============ height chain / scrolling ============ */
 	const vh = window.innerHeight;
 	const ml = document.querySelector('#mainmenu');
 	const mr = document.querySelector('.main-right');
+
+	/* Desktop sidebar must use the configurable acrylic material. */
+	const sideBg = getComputedStyle(ml).backgroundColor;
+	const sideFilter = getComputedStyle(ml).backdropFilter || getComputedStyle(ml).webkitBackdropFilter;
+	check('sidebar is translucent acrylic', /rgba/.test(sideBg) && /blur/.test(sideFilter || ''),
+		sideBg + ' / ' + sideFilter);
+
 	check('html fills viewport', document.documentElement.clientHeight === vh);
 	check('sidebar fills viewport height', Math.abs(ml.getBoundingClientRect().height - vh) <= 1,
 		Math.round(ml.getBoundingClientRect().height) + ' vs ' + vh);
