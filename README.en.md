@@ -233,6 +233,7 @@ opkg remove luci-theme-fluentdesign
 
 | Version | Date       | Notes                          |
 |---------|------------|--------------------------------|
+| 1.1.2   | 2026-10-09 | Fix sidebar height chain and submenu icon overlap |
 | 1.1.1   | 2026-10-08 | Browser CSS fallbacks & compat matrix |
 | 1.1.0   | 2026-10-08 | Theme settings page (UCI)      |
 | 1.0.0   | 2026-10-08 | Initial Fluent Design release  |
