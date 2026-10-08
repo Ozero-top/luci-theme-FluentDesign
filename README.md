@@ -1,5 +1,7 @@
 # luci-theme-FluentDesign
 
+[![LuCI compatibility matrix](https://github.com/Ozero-top/luci-theme-FluentDesign/actions/workflows/luci-compat.yml/badge.svg?branch=main)](https://github.com/Ozero-top/luci-theme-FluentDesign/actions/workflows/luci-compat.yml)
+
 A [Microsoft Fluent Design](https://fluent2.microsoft.design/) language theme
 for [OpenWrt LuCI](https://github.com/openwrt/luci), developed against the
 current ucode-template LuCI stack (OpenWrt 24.10 / SNAPSHOT and newer).
