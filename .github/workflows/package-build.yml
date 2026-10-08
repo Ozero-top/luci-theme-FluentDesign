@@ -112,7 +112,17 @@ jobs:
           # .config; otherwise their compile targets fail instantly.
           echo 'CONFIG_PACKAGE_luci-theme-FluentDesign=y' >> .config
           make defconfig
-          make package/luci-theme-FluentDesign/compile -j"$(nproc)"
+          if ! make package/luci-theme-FluentDesign/compile -j"$(nproc)"; then
+            for d in logs/package/feeds/luci/* logs/package/feeds/base/*; do
+              [ -d "$d" ] || continue
+              for t in "$d"/*.txt; do
+                [ -f "$t" ] || continue
+                echo "===== $t ====="
+                tail -n 40 "$t"
+              done
+            done
+            exit 1
+          fi
 
       - name: Verify packaged contents
         run: |
