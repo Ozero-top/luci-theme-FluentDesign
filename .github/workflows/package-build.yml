@@ -135,9 +135,14 @@ jobs:
         run: |
           set -euo pipefail
           cd sdk
-          art="$(find bin/packages -type f \
-            \( -name '*.ipk' -o -name '*.apk' \) \
-            | grep -E 'luci-theme-FluentDesign_[0-9][^/]*_all\.(ipk|apk)$')"
+          # ipk keeps the mixed-case package name and an "_all" arch tail;
+          # apk normalizes to lowercase "<name>-<version>-r<pkgrel>.apk".
+          case '${{ matrix.ext }}' in
+            ipk) pat='luci-theme-FluentDesign_[0-9][^/]*_all\.ipk$' ;;
+            apk) pat='luci-theme-fluentdesign-[0-9][^/]*\.apk$' ;;
+          esac
+          art="$(find bin/packages -type f -name '*.${{ matrix.ext }}' \
+            | grep -E "$pat" || true)"
           echo "Built artifact: $art"
           test -n "$art"
           test "$(printf '%s\n' "$art" | wc -l)" -eq 1
