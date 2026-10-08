@@ -47,7 +47,7 @@ Runtime mapping (performed by `luci.mk`):
 
 ## Requirements
 
-- OpenWrt with the ucode LuCI stack (24.10 / SNAPSHOT and newer)
+- OpenWrt with the ucode LuCI stack (22.03 through 25.12 / SNAPSHOT)
 - `luci-base` (declared as the only package dependency)
 
 ## Compatibility
@@ -58,9 +58,18 @@ LuCI (the same stack as the stock 22.03+ themes), the standard
 
 | Stack | Status |
 |--------|--------|
-| OpenWrt 24.10 / SNAPSHOT, 23.05, 2203 | Supported |
+| OpenWrt 25.12.x (apk; latest stable, verified on 25.12.5) | Supported |
+| OpenWrt 24.10.x (opkg; verified up to 24.10.x) | Supported |
+| OpenWrt 23.05, 22.03 | Supported |
 | ImmortalWrt on the matching baselines (22.03 / 23.05 / 24.10) | Supported |
 | OpenWrt 21.02 and older (Lua `.htm` template LuCI) | Not supported |
+
+> Note: there is no OpenWrt "25.10" release — after 24.10 the next
+> stable branch is 25.12 (25.12.0 released 2026-03-18). No fork or
+> special build is needed for it: the settings view was tested against
+> the openwrt-25.12 LuCI core (all automated checks pass) and the
+> ucode template / `luci.mk` packaging contracts are unchanged.
+
 
 **Web server** — transparent, because the theme sits on the LuCI
 rendering layer and ships only static assets plus ucode templates:
