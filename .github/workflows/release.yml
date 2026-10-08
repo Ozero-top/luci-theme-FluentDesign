@@ -38,6 +38,7 @@ jobs:
           generate_release_notes: true
           prerelease: ${{ contains(github.ref_name, '-') }}
           make_latest: true
+          overwrite_files: true
           files: |
-            dist/**/*.ipk
-            dist/**/*.apk
+            dist/**/luci-theme-FluentDesign_*_all.ipk
+            dist/**/luci-theme-FluentDesign-*.apk

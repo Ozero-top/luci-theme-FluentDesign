@@ -158,6 +158,8 @@ jobs:
         with:
           name: luci-theme-FluentDesign-${{ matrix.version }}
           if-no-files-found: error
+          # Only the theme package itself, not the dependency packages
+          # (lucihttp/rpcd/...) that the SDK built alongside it.
           path: |
-            sdk/bin/packages/**/*.ipk
-            sdk/bin/packages/**/*.apk
+            sdk/bin/packages/**/luci-theme-FluentDesign_*_all.ipk
+            sdk/bin/packages/**/luci-theme-FluentDesign-*.apk
