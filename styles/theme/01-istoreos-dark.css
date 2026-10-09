@@ -1,0 +1,205 @@
+/* ==========================================================================
+ * istoreos-dark — UNLAYERED ON PURPOSE. Do not wrap this file in @layer.
+ *
+ * iStoreOS ecosystem apps (quickstart, and apps sharing its style system)
+ * are Vue SPAs with INCOMPLETE dark support: body[theme="dark"] flips ~23
+ * CSS variables, but a large share of their components hard-code
+ * background:#fff / dark text colors (modals, the setup wizard root, the
+ * network-port table, quick-action cards...). Their bundled stylesheet is
+ * itself unlayered, so it would beat every @layer rule here; this slice is
+ * therefore emitted verbatim (same mechanism as 00-reset-guard.css).
+ *
+ * Scope discipline:
+ *  - anchored to body[theme="dark"], which header.ut always emits;
+ *  - in-app chrome is additionally anchored to #app, the quickstart SPA
+ *    mount node (standard LuCI never creates #app), so these rules cannot
+ *    touch ordinary CBI views;
+ *  - only STABLE class names are used — the apps' [data-v-xxxxxxxx] scoped
+ *    hashes change every release;
+ *  - specificity body[theme=dark] .x (0,2,1) beats their .x[data-v-…]
+ *    (0,2,0), so !important is unnecessary except where the app itself
+ *    uses it.
+ *
+ * Official luci-theme-argon ships NO such compat layer; this is theme-side
+ * coverage beyond the body-attribute contract.
+ * ========================================================================== */
+
+/* ---------- P0: complete the app's own dark variable set ---------- */
+
+body[theme="dark"] {
+	--card-bg-color: rgba(255, 255, 255, .06);
+	--card-txt-color: var(--fs-text);
+	--border-color: rgba(255, 255, 255, .10);
+	--tag-bg-color: var(--fs-panel2);
+	--popup-bg-color: var(--fs-panel);
+	--SystemInfo-bg-color: var(--fs-panel2);
+	--SystemUpdateBanner-bg-color: var(--fs-panel2);
+	--SystemUpdateBanner-border-color: var(--fs-border);
+	--btn-border-color: var(--fs-border);
+	--btn-border-hover-color: #373e47;
+}
+
+/* ---------- P0: setup wizard root and full-screen action overlays ---------- */
+
+body[theme="dark"] .action-container {
+	background: rgba(28, 33, 40, .96);
+	color: var(--fs-text);
+}
+body[theme="dark"] .action,
+body[theme="dark"] .action-main,
+body[theme="dark"] .actioner-dns,
+body[theme="dark"] .actioner-tips {
+	background: var(--fs-panel2);
+	border-color: var(--fs-border);
+	color: var(--fs-text);
+	box-shadow: var(--fs-shadow-pop);
+}
+body[theme="dark"] #app .action h2.title,
+body[theme="dark"] #app .action-header_title,
+body[theme="dark"] #app .actioner-container_body .body-title,
+body[theme="dark"] #page .title {
+	color: #e6edf3;
+}
+body[theme="dark"] #app .action .desc,
+body[theme="dark"] #app .roots .root,
+body[theme="dark"] #app .roots_tit,
+body[theme="dark"] #page .desc {
+	color: var(--fs-dim);
+}
+
+/* ---------- P1: homepage quick-action cards ---------- */
+
+body[theme="dark"] #app .feature-card {
+	border-color: var(--fs-border);
+}
+body[theme="dark"] #app .feature-card .content .subtitle,
+body[theme="dark"] #app .feature-card .footer .status {
+	color: var(--fs-dim);
+}
+body[theme="dark"] #app .feature-card .footer .status {
+	background: var(--fs-panel2);
+}
+body[theme="dark"] #app .feature-card .footer .status.active {
+	background: rgba(56, 161, 105, .22);
+	color: #7ee787;
+}
+/* pastel logo chips -> same hue, low-alpha dark fill */
+body[theme="dark"] #app .feature-card.purple .badge { background: rgba(130, 0, 219, .18); color: #d9a8ff; }
+body[theme="dark"] #app .feature-card.blue .badge   { background: rgba(59, 130, 246, .18); color: #93c5fd; }
+body[theme="dark"] #app .feature-card.skyblue .badge{ background: rgba(97, 95, 255, .18);  color: #b7b5ff; }
+body[theme="dark"] #app .feature-card.green .badge  { background: rgba(46, 160, 67, .18);   color: #7ee787; }
+body[theme="dark"] #app .feature-card.pink .badge   { background: rgba(219, 68, 155, .18);  color: #f2a4d0; }
+body[theme="dark"] #app .feature-card.orange .badge { background: rgba(219, 124, 40, .18);  color: #f0b87f; }
+
+body[theme="dark"] #app .item_container .item {
+	border-color: var(--fs-border);
+}
+/* the app pins this one with !important, match it */
+body[theme="dark"] #app .reusable-card {
+	background: var(--fs-panel2) !important;
+	border-color: var(--fs-border) !important;
+}
+
+/* ---------- P2: network-port panel, tables, inputs ---------- */
+
+body[theme="dark"] #app .custom-content .address_box {
+	background: var(--fs-panel);
+}
+body[theme="dark"] #app .custom-content .address_box > div {
+	background: var(--fs-panel2);
+	color: var(--fs-text);
+}
+body[theme="dark"] #app .custom-content .item_box > input,
+body[theme="dark"] #app .custom-content .item_box > select {
+	color: var(--fs-text);
+}
+body[theme="dark"] #app .select_box > select,
+body[theme="dark"] #app .result_item {
+	background: var(--fs-panel);
+	color: var(--fs-text);
+}
+body[theme="dark"] #app .label-value input:disabled {
+	background: var(--fs-panel2);
+	color: var(--fs-dim);
+}
+body[theme="dark"] #app .page-sidebar {
+	border-color: var(--fs-border);
+}
+
+body[theme="dark"] #app .container .table-wrapper .table-header,
+body[theme="dark"] #app .custom-table thead {
+	background: var(--fs-panel2);
+	color: var(--fs-text);
+}
+body[theme="dark"] #app .table-row,
+body[theme="dark"] #app .custom-table tbody tr {
+	border-color: rgba(255, 255, 255, .10);
+}
+body[theme="dark"] #app .table-row:hover,
+body[theme="dark"] #app .custom-table tbody tr:hover {
+	background: #373e47;
+}
+body[theme="dark"] #app .add-row:hover {
+	background: rgba(86, 157, 245, .15);
+}
+body[theme="dark"] #app .custom-table-container .pagination-wrapper .pagination-controls button {
+	background: var(--fs-panel2);
+	color: var(--fs-text);
+}
+body[theme="dark"] #app .custom-table-container .pagination-wrapper .pagination-controls button:disabled {
+	background: var(--fs-panel);
+	color: var(--fs-dim);
+}
+
+/* ---------- P3: modals, dialogs, dropdowns, light buttons ---------- */
+
+body[theme="dark"] .modal-container,
+body[theme="dark"] .dialog-container {
+	background: var(--fs-panel2);
+	color: var(--fs-text);
+	box-shadow: var(--fs-shadow-pop);
+}
+body[theme="dark"] .modal-header,
+body[theme="dark"] .modal-footer {
+	border-color: var(--fs-border);
+}
+body[theme="dark"] .modal-container .modal-footer .modal-button.cancel,
+body[theme="dark"] .dialog-container .button-group .cancel-button {
+	background: #373e47;
+	border-color: var(--fs-border);
+	color: var(--fs-text);
+}
+body[theme="dark"] .dialog-container .warning-message {
+	background: rgba(255, 193, 7, .12);
+	color: var(--fs-text);
+}
+
+body[theme="dark"] .dropdown-menu,
+body[theme="dark"] .app-update-button-menu ul {
+	background: var(--fs-panel2);
+	box-shadow: var(--fs-shadow-pop);
+	color: var(--fs-text);
+}
+body[theme="dark"] .popup-tag-item {
+	background: var(--fs-panel2);
+}
+body[theme="dark"] .popup-footer {
+	border-color: var(--fs-border);
+}
+
+body[theme="dark"] #app .add-button,
+body[theme="dark"] #app .del-button,
+body[theme="dark"] #app .module-settings__toggle-all,
+body[theme="dark"] #app .module-settings__btn--secondary {
+	background: var(--fs-panel2);
+	border-color: var(--fs-border);
+	color: var(--fs-text);
+}
+body[theme="dark"] #app .module-settings__item {
+	background: var(--fs-panel2);
+	border-color: var(--fs-border);
+}
+
+/* intentionally NOT overridden: switch knobs (.switch__button/.switch-button/
+ * .input-switch em use #fff as the knob over a coloured track) and brand
+ * gradient logo/icon fills. */

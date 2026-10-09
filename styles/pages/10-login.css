@@ -4,11 +4,15 @@
 	 * `form:has(> .cbi-map input[name="luci_username"])`, 49 chars × 17 rules (~0.8 KB) matching
 	 * nothing else. Never turn this into a JS-revealed modal: the view runs pre-session, RPCs answer
 	 * "Access denied", render() never runs. docs/css.md "Login: a definite width, not max-width". */
+	/* keeps a gap when the card is taller than the viewport and auto margins collapse to 0 */
+	body:has(> .fs-login) { padding: var(--fs-space-4); }
 	.fs-login {
 		/* DEFINITE width, never max-width: a direct flex item of <body> collapses to min-content
 		 * (~131px) under max-width alone — docs/css.md above. */
 		width: min(400px, calc(100% - 32px));
-		margin: 7vh auto var(--fs-space-10);
+		/* body is a min-height:100% flex column: auto margins centre the card
+		 * on BOTH axes (the old 7vh top margin left it riding high on wide screens) */
+		margin: auto;
 		background: var(--fs-panel); border: var(--fs-hairline); border-radius: var(--fs-radius-lg);
 		/* the token, not a literal 45%-black 60px halo: that ignored the palette. */
 		padding: var(--fs-space-6) var(--fs-space-6) var(--fs-space-6); box-shadow: var(--fs-shadow-pop);
@@ -36,15 +40,17 @@
 		font-size: var(--fs-type-xl); font-weight: var(--fs-weight-bold); letter-spacing: -.01em; margin: 0 0 var(--fs-space-1-5);
 	}
 	.fs-login .cbi-map-descr { color: var(--fs-dim); font-size: var(--fs-type); margin: 0 0 var(--fs-space-5); }
+	/* label and its control share ONE row: fixed-width title, fluid field */
 	.fs-login .cbi-value {
-		display: block; border: 0; padding: 0 0 var(--fs-space-4); margin: 0;
+		display: flex; align-items: center; gap: var(--fs-space-4);
+		border: 0; padding: 0 0 var(--fs-space-4); margin: 0;
 	}
 	.fs-login .cbi-value-title {
-		display: block; text-align: start; width: auto; max-width: none; padding: 0 0 var(--fs-space-1-5);
+		flex: 0 0 4.5em; width: auto; max-width: none; padding: 0; text-align: start;
 		font-size: var(--fs-type-xs); font-weight: var(--fs-eyebrow-weight); letter-spacing: var(--fs-eyebrow-tracking); text-transform: uppercase; color: var(--fs-eyebrow-color);
 	}
 	.fs-login .cbi-value-field {
-		width: 100%; margin: 0; padding: 0;
+		flex: 1 1 auto; min-width: 0; width: auto; margin: 0; padding: 0;
 	}
 	.fs-login .cbi-value-field input {
 		width: 100%; margin: 0; box-sizing: border-box;
