@@ -198,6 +198,7 @@ opkg remove luci-theme-fluentdesign
 
 | Version | Date       | Notes                          |
 |---------|------------|--------------------------------|
+| 2.0.1   | 2026-10-09 | Fix brand title wrapping and missing nav on dual-mode firmware; original pattern texture; translucent cards |
 | 2.0.0   | 2026-10-09 | Rewrite as a dark top-navigation theme (footstrap look); light mode and the settings page removed |
 | 1.1.3   | 2026-10-09 | Locale-independent nav icons, acrylic desktop sidebar |
 | 1.1.2   | 2026-10-09 | Fix sidebar height chain and submenu icon overlap |
