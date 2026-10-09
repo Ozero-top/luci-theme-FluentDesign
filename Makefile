@@ -8,7 +8,7 @@ include $(TOPDIR)/rules.mk
 
 LUCI_TITLE:=FluentDesign Theme - dark top navigation theme for LuCI
 LUCI_DEPENDS:=+luci-base
-PKG_VERSION:=2.0.1
+PKG_VERSION:=2.0.2
 PKG_RELEASE:=1
 
 # Keep modern CSS (backdrop-filter, custom properties, :has()) untouched.
