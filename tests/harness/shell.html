@@ -17,6 +17,11 @@
 		pointer-events: none; }
 	#harness-report .fail { color: #ff7676; }
 	#harness-report h4 { color: #fff; margin: 0 0 6px; }
+	/* canary for the hostile-unlayered-reset test: :where() is zero
+	 * specificity, so the later injected universal `*` (also 0,0,0) wins on
+	 * source order — proving the hostile reset really applies. */
+	:where(.harness-probe) { position: absolute; top: -9999px;
+		width: 4px; height: 4px; padding: 11px; margin: 11px; }
 </style>
 </head>
 <body class="lang_zh-cn logged-in" data-page="admin-system-admin">
@@ -58,7 +63,7 @@
 			<!-- stock LuCI CBI markup, for visual comparison -->
 			<div class="cbi-map">
 				<h2 name="content">管理权</h2>
-				<div class="cbi-section"><div class="cbi-section-node">
+				<fieldset class="cbi-section"><div class="cbi-section-node">
 					<div class="cbi-value">
 						<label class="cbi-value-title">主机名</label>
 						<div class="cbi-value-field"><input class="cbi-input-text" type="text" value="iStoreOS"></div>
@@ -69,7 +74,7 @@
 							<select class="cbi-input-select"><option>网关</option><option>AP</option></select>
 						</div>
 					</div>
-				</div></div>
+				</div></fieldset>
 				<div class="cbi-page-actions">
 					<button type="button" class="btn cbi-button cbi-button-apply">保存并应用</button>
 					<button type="button" class="btn cbi-button">重置</button>
@@ -83,7 +88,7 @@
 	</main>
 </div>
 
-<div id="harness-report"><h4>shell</h4><div id="harness-log"></div></div>
+<div id="harness-report"><h4>shell</h4><div class="harness-probe" aria-hidden="true"></div><div id="harness-log"></div></div>
 
 <script>window.TR = {};</script>
 <script src="/luci-static/resources/cbi.js"></script>
@@ -440,6 +445,85 @@ window.L = new LuCI({
 		check('logout stays on the brand row',
 			logoutR.top < navR.top && logoutR.bottom <= brandR.bottom + 24,
 			'logout ' + Math.round(logoutR.top) + '-' + Math.round(logoutR.bottom));
+	}
+
+	/* ============ third-party unlayered universal reset guard ============
+	 * OpenClash's oc-common.css ships an UNLAYERED `* { margin:0; padding:0 }`.
+	 * Unlayered declarations beat every @layer declaration regardless of
+	 * specificity, which is what collapsed the whole shell against the left
+	 * edge. styles/theme/00-reset-guard.css is emitted unlayered on purpose;
+	 * after a hostile sheet is injected the geometry must stay identical. */
+	const hostileProbe = document.querySelector('.harness-probe');
+	check('reset probe spaced before injection',
+		getComputedStyle(hostileProbe).paddingTop === '11px' &&
+		getComputedStyle(hostileProbe).marginTop === '11px');
+
+	const guardTargets = [
+		['.fs-sidebar', 'top bar'],
+		['.fs-content', 'content column'],
+		['footer.fs-footer', 'footer'],
+		['.cbi-map > h2', 'heading card'],
+		['fieldset.cbi-section', 'section card'],
+		['fieldset.cbi-section .cbi-value', 'value row'],
+		['.cbi-value-title', 'value title'],
+		['.cbi-page-actions', 'page actions'],
+		['.cbi-page-actions .cbi-button', 'action button'],
+		['#topmenu > li > a', 'nav pill']
+	];
+	function boxGeom(sel) {
+		const el = document.querySelector(sel);
+		if (!el) return null;
+		const cs = getComputedStyle(el);
+		const r = el.getBoundingClientRect();
+		return {
+			mt: cs.marginTop, mr: cs.marginRight, mb: cs.marginBottom, ml: cs.marginLeft,
+			pt: cs.paddingTop, pr: cs.paddingRight, pb: cs.paddingBottom, pl: cs.paddingLeft,
+			x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height)
+		};
+	}
+	const cleanGeom = {};
+	guardTargets.forEach(function(t) { cleanGeom[t[0]] = boxGeom(t[0]); });
+
+	const hostile = document.createElement('style');
+	hostile.id = 'harness-hostile-reset';
+	/* exact oc-common.css L1924 shape: plain declarations, no !important */
+	hostile.textContent = '* { margin: 0; padding: 0; }';
+	document.head.appendChild(hostile);
+	await waitFrame();
+
+	check('hostile unlayered reset is in effect',
+		getComputedStyle(hostileProbe).paddingTop === '0px' &&
+		getComputedStyle(hostileProbe).marginTop === '0px',
+		getComputedStyle(hostileProbe).paddingTop + '/' + getComputedStyle(hostileProbe).marginTop);
+	guardTargets.forEach(function(t) {
+		const g = boxGeom(t[0]);
+		check('reset guard keeps ' + t[1] + ' geometry',
+			JSON.stringify(g) === JSON.stringify(cleanGeom[t[0]]),
+			g ? 'pt=' + g.pt + ' pl=' + g.pl + ' x=' + g.x + ' w=' + g.w : 'element missing');
+	});
+	const contentCS = getComputedStyle(document.querySelector('.fs-content'));
+	check('content padding survives the reset',
+		parseFloat(contentCS.paddingTop) > 0 && parseFloat(contentCS.paddingLeft) > 0,
+		contentCS.paddingTop + '/' + contentCS.paddingLeft);
+	check('top bar padding survives the reset',
+		parseFloat(getComputedStyle(document.querySelector('.fs-sidebar')).paddingLeft) > 0);
+	const footerCS = getComputedStyle(document.querySelector('footer.fs-footer'));
+	check('footer padding survives the reset',
+		parseFloat(footerCS.paddingTop) > 0 && parseFloat(footerCS.paddingLeft) > 0,
+		footerCS.paddingTop + '/' + footerCS.paddingLeft);
+	if (isDesktop) {
+		const contentEl = document.querySelector('.fs-content');
+		const cr = contentEl.getBoundingClientRect();
+		const ccs = getComputedStyle(contentEl);
+		check('content column stays centred under the reset',
+			ccs.marginLeft === ccs.marginRight &&
+			Math.abs(cr.left - (window.innerWidth - cr.width) / 2) < 1,
+			'ml=' + ccs.marginLeft + ' mr=' + ccs.marginRight +
+			' x=' + Math.round(cr.left) + ' w=' + Math.round(cr.width));
+	} else {
+		const pillCS = getComputedStyle(document.querySelector('#topmenu > li > a'));
+		check('nav pill padding survives the reset (narrow)',
+			parseFloat(pillCS.paddingTop) > 0, pillCS.paddingTop);
 	}
 
 	const failed = results.filter(r => !r.ok).length;

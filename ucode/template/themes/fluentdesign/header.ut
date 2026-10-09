@@ -41,7 +41,9 @@
 	<script src="{{ resource }}/luci.js?v={{ version.luciversion }}"></script>
 </head>
 
-<body class="lang_{{ dispatcher.lang }}{% if (ctx.authsession): %} logged-in{% endif %}" data-page="{{ fs_page }}">
+<!-- theme="dark": iStoreOS apps (quickstart, VUM, iStore) read this Argon-established
+     contract to switch their bundled palettes; FluentDesign is always dark -->
+<body class="lang_{{ dispatcher.lang }}{% if (ctx.authsession): %} logged-in{% endif %}" theme="dark" data-page="{{ fs_page }}">
 
 	<div class="fs-pattern" data-fs-chrome aria-hidden="true"></div>
 

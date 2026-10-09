@@ -1865,6 +1865,333 @@
 	/* Overview Hide/Show toggle pills: theme/35-alerts.css (.cbi-title .label) +
 	 * pages/20-overview.css (chevron variant) — absorbed. */
 }
+/* ==========================================================================
+ * reset-guard — UNLAYERED ON PURPOSE. Do not wrap this file in @layer.
+ *
+ * build-css.mjs sees no leading `@layer theme {` and emits the file verbatim,
+ * ahead of the @layer theme block.
+ *
+ * Why this exists: a third-party view can ship a plain (unlayered) global
+ * reset — e.g. OpenClash's oc-common.css ends with `* { margin: 0; padding:
+ * 0 }`. Unlayered author declarations beat EVERY layered declaration no
+ * matter the specificity, so that reset zeroed the theme's geometry: the
+ * .fs-content column lost `margin: 0 auto` (on wide screens the whole page
+ * stuck to the left half) and the bar, cards, tables and forms lost every
+ * gutter. Re-asserting the geometry here, as ordinary declarations, makes
+ * specificity work again: these class/id selectors outrank `*` exactly as
+ * they do in a classic non-layered theme.
+ *
+ * Contract:
+ *  - margin/padding geometry ONLY (the only properties a universal reset
+ *    zeroes); never paint, display or flex.
+ *  - selectors stay identical to the layered rules mirrored below, and the
+ *    values stay token-based, so spacing/density changes track by themselves.
+ *  - when you add or change a margin/padding rule in a layered slice, mirror
+ *    it here. tests/harness/run-browser-tests.mjs injects an adversarial
+ *    reset and pins parity with the clean render.
+ * ========================================================================== */
+
+/* ---------- chrome: top bar (the only layout v2 ships) ---------- */
+
+.fs-sidebar { padding: var(--fs-space-2-5) var(--fs-space-4); }
+:root[data-layout="top"] .fs-sidebar {
+	padding: 0 max(20px, calc((100% - var(--fs-content-max)) / 2 + var(--fs-content-pad)));
+}
+:root[data-layout="top"] .fs-sidebar ul.nav { margin-inline-start: var(--fs-space-2); }
+.fs-sidebar ul.nav,
+.fs-sidebar #modemenu { margin: 0; padding: 0; }
+.fs-sidebar ul.nav > li > a { padding: var(--fs-space-1-5) var(--fs-space-3); }
+.fs-sidebar ul.nav ul,
+.fs-sidebar ul.nav > li.open > ul { margin: 0; padding: var(--fs-space-2); }
+.fs-sidebar ul.nav ul a { padding: var(--fs-space-2) var(--fs-space-3); }
+
+/* exactly one member of the far-edge cluster keeps the auto gap (mirrors 20-shell.css) */
+.fs-sidebar #indicators { margin-inline-start: auto; }
+.fs-themerow { margin-inline-start: auto; }
+.fs-sidebar #indicators:not(:empty) ~ .fs-themerow { margin-inline-start: 0; }
+.fs-themerow ~ .fs-themerow { margin-inline-start: 0; }
+:root[data-layout="top"] .fs-sidebar #indicators,
+:root[data-layout="top"] .fs-themerow,
+:root[data-layout="top"] .fs-logout { margin-inline-start: 0; }
+.fs-indicators .label,
+.fs-indicators [data-indicator],
+#indicators .label,
+#indicators [data-indicator] { padding: 0 var(--fs-space-3); }
+
+/* skip link / screen-reader-only chrome */
+.fs-skip { padding: var(--fs-space-2-5) var(--fs-space-4); }
+.fs-skip:not(:focus) { padding: 0; }
+.fs-sr { margin: -1px; }
+
+/* ---------- chrome: content column, footer, notifications ---------- */
+
+.fs-content {
+	margin: 0 auto;
+	padding: var(--fs-space-5) var(--fs-content-pad);
+}
+:root[data-layout="top"] .fs-content { padding-top: var(--fs-space-6); }
+footer { margin-top: auto; padding: var(--fs-space-3-5) var(--fs-content-pad); }
+
+.alert-message { margin-bottom: var(--fs-space-2); padding: var(--fs-space-3-5) var(--fs-space-4); }
+.fs-main > .alert-message { margin: var(--fs-space-4) auto 0; }
+.alert-message :is(h2, h3, h4, h5, h6) { margin: 0 0 var(--fs-space-1); }
+.alert-message p { margin: var(--fs-space-1) 0; }
+.alert-message :is(ul, ol, li, pre) { margin: .25em 0; }
+.alert-message button { margin: var(--fs-space-1) 0; }
+.alert-message .table { margin: var(--fs-space-2-5) 0; }
+.alert-message .table .th,
+.alert-message .table .td { padding: var(--fs-space-2) var(--fs-space-3) var(--fs-space-2) 0; }
+.alert-message .btn,
+.alert-message .cbi-button { padding: var(--fs-space-2) var(--fs-space-3); }
+
+/* ---------- tabs, breadcrumb ---------- */
+
+#tabmenu ul.tabs,
+ul.cbi-tabmenu.mode,
+.tabs,
+.cbi-tabmenu {
+	margin: 0 0 var(--fs-card-gap);
+	padding: var(--fs-space-2);
+}
+.cbi-section .tabs,
+.cbi-section .cbi-tabmenu:not(.mode):not(.map) { padding: var(--fs-space-1-5); }
+#tabmenu ul.tabs > li > a,
+ul.cbi-tabmenu.mode > li > a,
+.tabs > li > a,
+.cbi-tabmenu > li > a { padding: var(--fs-space-2) var(--fs-space-3-5); }
+.cbi-tab-descr { margin: calc(var(--fs-space-2) * -1) 0 var(--fs-space-4) 0; }
+.cbi-tab-disabled[data-errors]::after {
+	margin-inline-end: var(--fs-space-1);
+	padding: 0 var(--fs-space-1);
+}
+.tabs a.menu:after,
+.tabs .dropdown-toggle:after { margin-inline-start: var(--fs-space-1); }
+.breadcrumb {
+	padding: var(--fs-space-2) var(--fs-space-3);
+	margin: 0 0 var(--fs-space-4);
+}
+.breadcrumb li:not(:last-child)::after { padding: 0 var(--fs-space-1); }
+footer ul.breadcrumb { margin-inline-start: auto; }
+
+/* ---------- prose blocks a third-party view can emit (base/20-typography) ---------- */
+
+h1 { margin-bottom: var(--fs-space-4); }
+p,
+.cbi-map-descr,
+.cbi-section-descr,
+.table .tr.cbi-section-table-descr .th { margin-bottom: var(--fs-space-2); }
+ul, ol { margin: 0 0 var(--fs-space-4) var(--fs-space-6); }
+ul ul, ul ol, ol ol, ol ul { margin-bottom: 0; }
+dl { margin-bottom: var(--fs-space-4); }
+dl dd { margin-inline-start: var(--fs-space-2); }
+hr { margin: var(--fs-space-5) 0; }
+address { margin-bottom: var(--fs-space-4); }
+code { padding: 1px var(--fs-space-1); }
+pre { padding: var(--fs-space-2); margin: 0 0 var(--fs-space-4); }
+.pager.center { padding: var(--fs-space-3-5) 0; }
+
+/* ---------- CBI maps, sections, values ---------- */
+
+.cbi-map > h2,
+#view > h2 {
+	margin: 0 0 var(--fs-card-gap);
+	padding: var(--fs-space-4);
+}
+.cbi-map > h2:has(+ .cbi-map-descr),
+#view > h2:has(+ .cbi-map-descr) {
+	padding-bottom: var(--fs-space-1);
+	margin-bottom: 0;
+}
+.cbi-map > h2 + .cbi-map-descr,
+#view > h2 + .cbi-map-descr {
+	margin: 0 0 var(--fs-card-gap);
+	padding: 0 var(--fs-space-4) var(--fs-space-4);
+}
+
+fieldset { margin-bottom: var(--fs-space-2); padding-top: var(--fs-space-2); }
+fieldset legend { padding-top: var(--fs-space-5); }
+.cbi-section { padding: var(--fs-card-pad); margin-bottom: var(--fs-card-gap); }
+.cbi-section > .cbi-title { margin-bottom: var(--fs-space-3); }
+/* zero override beats the generic fieldset/legend rules above, as the layered theme rule does */
+.cbi-section > .cbi-title h3,
+.cbi-section > h3:first-child,
+.cbi-section > legend { margin: 0; padding: 0; }
+.cbi-section > h3:first-child,
+.cbi-section > legend { margin-bottom: var(--fs-space-3); }
+.cbi-section .table + h3 { margin-top: var(--fs-space-5); }
+.cbi-section h3 + .table { margin-top: var(--fs-space-3); }
+.cbi-section-remove { margin-bottom: var(--fs-space-2); }
+.cbi-title-buttons { margin-block: var(--fs-space-2) var(--fs-card-gap); }
+.cbi-map > *:not(.cbi-section):not(.cbi-map-descr):not(.cbi-page-actions):not(h2):not(legend):not(.cbi-tabmenu):not(.cbi-map-tabbed):not(:empty) {
+	margin-bottom: var(--fs-card-gap);
+}
+
+.cbi-value { padding: var(--fs-space-2) 0; }
+.cbi-value-field { margin-inline-start: var(--fs-space-5); }
+.cbi-value label.cbi-value-title { padding-top: var(--fs-space-1); }
+.cbi-value-field > .control-group { margin-top: var(--fs-space-2); }
+.cbi-value-description { margin: var(--fs-space-1) 0 0 1.25em; }
+.cbi-optionals,
+.cbi-section-create { padding: 0 0 var(--fs-space-3) var(--fs-space-3); }
+.cbi-dynlist > .item {
+	margin-bottom: var(--fs-space-1);
+	padding: var(--fs-space-1) 2em var(--fs-space-1) var(--fs-space-2);
+}
+
+.cbi-section-error { padding: var(--fs-space-2); margin-bottom: var(--fs-space-4); }
+.cbi-section-error ul { margin: 0 0 0 var(--fs-space-5); }
+
+/* ---------- tables ---------- */
+
+.cbi-section .table .td,
+.cbi-section .table .th {
+	padding: var(--fs-space-2-5) var(--fs-space-4) var(--fs-space-2-5) 0;
+}
+.cbi-section .table:is([id], .fs-dt) .td,
+.cbi-section .table:is([id], .fs-dt) .th,
+table.fs-dt .td,
+table.fs-dt .th { padding: var(--fs-space-2-5) var(--fs-space-3); }
+.table.cbi-section-table .cbi-section-filter { padding: var(--fs-space-1) var(--fs-space-1-5); }
+.cbi-section-table .th,
+.cbi-section-table .td,
+.table.cbi-section-table .th,
+.table.cbi-section-table .td,
+.table.cbi-section-table .tr::before { padding: var(--fs-space-2) var(--fs-space-3) var(--fs-space-2) 0; }
+.table.cbi-section-table:not(.cbi-section *):not(.cbi-section-node *) .th,
+.table.cbi-section-table:not(.cbi-section *):not(.cbi-section-node *) .td { padding: var(--fs-space-2-5) var(--fs-space-3); }
+.cbi-section .table[id] .tr.placeholder .td,
+#view .table[id] .tr.placeholder .td,
+table.fs-dt .tr.placeholder .td { padding-block: var(--fs-space-2); }
+/* general cell rhythm (Startup/Processes/etc); horizontal padding belongs to the flavours above */
+.table .td { padding-top: var(--fs-space-2); padding-bottom: var(--fs-space-2); }
+.cbi-section .table[id] .td .btn,
+.cbi-section .table[id] .td .cbi-button { padding: var(--fs-space-1) var(--fs-space-2-5); }
+.td.cbi-section-actions > :not(.cbi-dropdown) > *,
+.td.cbi-section-actions > * > form > * { margin: 0 var(--fs-space-1); }
+
+/* key/value tables fold into label/value rows in a narrow map/section */
+@container fs-content (max-width: 560px) {
+	.cbi-section .table:not([id]):not(.cbi-section-table):not(.fs-dt):not(:has(.th)):not(:has(.td:nth-child(3))):not([style*="table-layout"]) .tr {
+		padding: var(--fs-space-1) 0 var(--fs-space-1-5);
+	}
+	.cbi-section .table:not([id]):not(.cbi-section-table):not(.fs-dt):not(:has(.th)):not(:has(.td:nth-child(3))):not([style*="table-layout"]) .td:first-child:first-child,
+	.cbi-section .table:not([id]):not(.cbi-section-table):not(.fs-dt):not(:has(.th)):not(:has(.td:nth-child(3))):not([style*="table-layout"]) .td:last-child:last-child:not(:first-child) {
+		padding: 0;
+	}
+}
+/* form.TableSection rows card the same way below 992px (mirrors 65-dropdown.css) */
+@container fs-content (max-width: 992px) {
+	.table.cbi-section-table .tr {
+		padding: var(--fs-space-2) var(--fs-space-3-5) var(--fs-space-3);
+		margin-bottom: var(--fs-space-3);
+	}
+	.table.cbi-section-table .td {
+		padding-block: var(--fs-space-1-5);
+		padding-inline: 0 var(--fs-space-2-5);
+	}
+	.table.cbi-section-table .td[data-title]::before { margin-bottom: var(--fs-space-1); }
+	.table.cbi-section-table .td.cbi-section-actions { padding-top: var(--fs-space-2); }
+}
+
+/* ---------- buttons, action bars ---------- */
+
+.cbi-button,
+.btn,
+input[type="button"], input[type="submit"], input[type="reset"] {
+	padding: var(--fs-space-2) var(--fs-space-3-5);
+}
+.btn.large { padding: var(--fs-space-2) var(--fs-space-4); }
+.btn.small { padding: var(--fs-space-1) var(--fs-space-2-5); }
+.btn > input[type="checkbox"],
+.btn > input[type="radio"] { margin-inline-end: .5em; }
+.cbi-page-actions {
+	padding: var(--fs-space-2) 0;
+	margin: 0 0 var(--fs-card-gap);
+}
+.cbi-page-actions .cbi-button,
+.cbi-page-actions .btn { padding: 0 var(--fs-space-5); }
+.cbi-page-actions > :not([method="post"]):not(.cbi-button-apply):not(.cbi-button-negative):not(.cbi-button-save):not(.cbi-button-reset) {
+	margin-inline-end: var(--fs-space-1);
+}
+/* legacy action plate still emitted by a few luci-app-* views */
+.actions {
+	margin-bottom: var(--fs-space-4);
+	padding: var(--fs-card-pad);
+}
+
+/* ---------- pills, form controls, dropdowns ---------- */
+
+.label {
+	padding: var(--fs-space-1) var(--fs-space-2);
+	margin: .125em 0 .125em .4em;
+}
+.cbi-title .label { padding: var(--fs-space-1) var(--fs-space-3); margin: 0; }
+
+.cbi-input-text, .cbi-input-password, .cbi-input-textarea,
+.cbi-section-create-name, .cbi-value-field input.create-item-input,
+input[type="text"], input[type="password"], input[type="number"],
+input[type="email"], input[type="url"], input[type="search"],
+input[type="tel"], input[type="date"], input[type="time"],
+input[type="datetime-local"], input[type="month"], input[type="week"],
+input[type="color"],
+textarea {
+	padding: var(--fs-space-2) var(--fs-space-3);
+}
+select, select.cbi-input-select, .cbi-value-field select {
+	padding: var(--fs-space-2) var(--fs-space-8) var(--fs-space-2) var(--fs-space-3);
+}
+
+.cbi-dropdown > ul { margin: 0; padding: 0; }
+.cbi-dropdown.btn > ul:not(.dropdown),
+.cbi-dropdown.cbi-button > ul:not(.dropdown) { margin: 0 0 0 var(--fs-space-3); }
+.cbi-dropdown.btn > .open,
+.cbi-dropdown.cbi-button > .open { margin-inline-start: .5em; }
+.cbi-dropdown > ul > li > form > input[type="checkbox"] { margin: 0 var(--fs-space-1) 0 0; }
+.cbi-dropdown:not(.btn):not(.cbi-button) > ul > li,
+.cbi-dropdown > ul.dropdown > li { padding: var(--fs-space-2) var(--fs-space-3); }
+.cbi-dropdown[open] > ul.dropdown {
+	padding: var(--fs-space-1-5);
+	margin-top: var(--fs-space-1-5);
+}
+.cbi-dropdown[open] > ul.dropdown > li { padding: var(--fs-space-2) var(--fs-space-3); }
+.cbi-dropdown[open] > ul.dropdown > li.create-item { margin-top: var(--fs-space-1); }
+@supports (appearance: base-select) {
+	::picker(select) {
+		padding: var(--fs-space-1-5);
+		margin-top: var(--fs-space-1-5);
+	}
+	.cbi-value-field select option { padding: var(--fs-space-2) var(--fs-space-3); }
+}
+
+/* ---------- modal dialogs ---------- */
+
+.modal {
+	margin: var(--fs-space-6) auto;
+	padding: var(--fs-card-pad);
+}
+.modal > * { margin-bottom: .5em; }
+.modal > .alert-message { margin-bottom: var(--fs-space-2); }
+.modal > .button-row > button:not(:last-of-type) { margin-inline-end: var(--fs-space-2); }
+.modal > .button-row > button:first-of-type { margin-inline-end: auto; }
+
+/* ---------- responsive chrome ---------- */
+
+@media (max-width: 860px) {
+	:root[data-layout="top"] .fs-sidebar { padding: var(--fs-space-2-5) var(--fs-space-3); }
+	:root[data-layout="top"] .fs-sidebar ul.nav {
+		margin-inline-start: 0;
+		padding-bottom: var(--fs-space-1);
+	}
+	:root[data-layout="top"] .fs-sidebar #indicators { margin-inline-start: auto; }
+	:root[data-layout="top"] .fs-logout { margin-inline-start: 0; }
+}
+
+@media (max-width: 767px) {
+	.fs-content { padding: var(--fs-space-4); }
+	.fs-main > .alert-message { margin: var(--fs-space-3) var(--fs-space-4) 0; }
+	/* mirrors 90-responsive.css: the title stacks above its field with no baseline nudge */
+	.cbi-value > label.cbi-value-title { padding-top: 0; }
+}
 @layer theme {
 	/* Pins inherited-only props on [data-fs-chrome], closing what the fence cannot: inheritance
 	 * from html/body. ROOT-only selector and text-align: start (never left) are load-bearing —
