@@ -1,29 +1,31 @@
 {#
-	luci-theme-FluentDesign
+	luci-theme-FluentDesign v2
 
 	Closes every container opened in header.ut, in reverse order:
-	  .container  ->  #maincontent  ->  (footer)  ->  .main-right  ->  .main
+	  .fs-content -> <footer> -> .fs-main -> .fs-shell
 -#}
 
-				</div>
-			</div>
-			<footer class="mobile-hide">
-				<div class="footer-content">
-					<a class="luci-link" href="https://github.com/openwrt/luci" target="_blank" rel="noopener">Powered by {{ version.luciname }} ({{ version.luciversion }})</a>
-					<span class="footer-separator">|</span>
-					<a href="https://github.com/openwrt/luci" target="_blank" rel="noopener">FluentDesign Theme</a>
-					<span class="footer-separator">|</span>
-					<a class="luci-link" href="{{ version.disturl }}" target="_blank" rel="noopener">{{ version.distname }} {{ version.distversion }}-{{ version.distrevision }}</a>
+	{% if (!blank_page): %}
+			</div>{# /.fs-content #}
 
-					<ul class="breadcrumb" id="modemenu" style="display:none"></ul>
-				</div>
+			<footer class="fs-footer" role="contentinfo">
+				<span>
+					Powered by
+					<a href="https://github.com/openwrt/luci" target="_blank" rel="noreferrer">{{ version.luciname }} ({{ version.luciversion }})</a>
+					/
+					<a href="{{ version.disturl ?? '#' }}" target="_blank" rel="noreferrer">{{ version.distname }} {{ version.distversion }}-{{ version.distrevision }}</a>
+					{% if (lua_active): %}
+						/ {{ _('Lua compatibility mode active') }}
+					{% endif %}
+				</span>
 			</footer>
-		</div>
-	</div>
+		</main>{# /.fs-main #}
+	</div>{# /.fs-shell #}
+
 	<script>
-		// thanks for Jo-Philipp Wich <jow@openwrt.org>
 		var luciLocation = {{ ctx.path }};
 	</script>
 	<script type="text/javascript">L.require('menu-fluentdesign')</script>
+	{% endif %}
 </body>
 </html>

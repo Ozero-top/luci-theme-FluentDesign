@@ -2,304 +2,314 @@
 'require baseclass';
 'require ui';
 
-/**
- * luci-theme-FluentDesign menu module.
+/*
+ * luci-theme-FluentDesign v2 — top-bar menu renderer.
  *
- * DOM contract (same as the reference themes, relied upon by LuCI core):
- *   #mainmenu    -> sidebar receives the top level <ul class="nav">
- *   #modemenu    -> top mode breadcrumb
- *   #tabmenu     -> deep navigation tabs
- *   .showSide    -> mobile sidebar toggle button
- *   .darkMask    -> click-to-dismiss scrim
+ * Self-contained port of luci-theme-footstrap's chrome menu (Apache-2.0),
+ * minus the SPA router, fit engine, rail and preferences: the layout is
+ * fixed to the top bar, so every section with children is a dropdown
+ * panel (hover via CSS, tap toggles .open), never an accordion.
  *
- * All motion is capped at 200ms per the Fluent Design motion rule and
- * collapses to instant transitions under prefers-reduced-motion.
+ * DOM hooks the markup relies on (header.ut):
+ *   #topmenu     -> bar section pills and their dropdown panels
+ *   #modemenu    -> top mode switcher (hidden when there is one mode)
+ *   #tabmenu     -> deep navigation tabs (filled by the dispatcher too)
+ *   #indicators  -> poll/unsaved indicators, populated by luci-base
+ *
+ * Icons are keyed by the stable dispatcher node NAME, never the
+ * translated title, so localized builds get the same glyphs. The bar's
+ * CSS hides the top-level icons (pills are text-only); they stay in the
+ * markup as the icon contract footstrap's stylesheets expect.
  */
 
-var SlideAnimations = {
-	duration: 180,
+/* Null prototype: a third-party menu.d node called `constructor` or
+ * `__proto__` must not resolve out of Object.prototype to a truthy
+ * non-string and skip the _default fallback into innerHTML. */
+const ICONS = Object.assign(Object.create(null), {
+	status:   '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
+	system:   '<rect x="5" y="5" width="14" height="14" rx="2"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/>',
+	services: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.6"/>',
+	network:  '<circle cx="6" cy="18" r="2.4"/><circle cx="18" cy="6" r="2.4"/><circle cx="18" cy="18" r="2.4"/><path d="M8 16 16 8M8 18h7.5M18 8.5V16"/>',
+	vpn:      '<rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
+	docker:   '<rect x="3" y="11" width="4" height="4" rx=".7"/><rect x="8" y="11" width="4" height="4" rx=".7"/><rect x="13" y="11" width="4" height="4" rx=".7"/><rect x="8" y="6" width="4" height="4" rx=".7"/><path d="M18 13c0 4-3 6-8 6-4 0-7-2-7-4"/>',
+	_default: '<circle cx="12" cy="12" r="8.5"/>'
+});
 
-	getDuration: function() {
-		if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
-			return 0;
-		return this.duration;
-	},
+/* Client half of the server-side icon.ut partial: every chrome icon is
+ * the same 24x24 stroked outline differing only in path data. */
+function iconSvg(name) {
+	const key = String(name || '').toLowerCase();
+	const body = ICONS[key]
+		|| ((/vpn|wireguard|openvpn/).test(key) ? ICONS.vpn : null)
+		|| ((/dock|container|lxc/).test(key) ? ICONS.docker : null)
+		|| ((/net|wifi|wireless|firewall|dhcp/).test(key) ? ICONS.network : null)
+		|| ((/serv|dnsmasq|cron/).test(key) ? ICONS.services : null)
+		|| ((/stat|overview|dash/).test(key) ? ICONS.status : null)
+		|| ICONS._default;
+	return '<svg class="fs-ico" aria-hidden="true" viewBox="0 0 24 24" fill="none" '
+		+ 'stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">'
+		+ body + '</svg>';
+}
 
-	runningAnimations: new WeakMap(),
+const TRIGGER = ':scope > a';
+const OPEN_LI = '#topmenu > li.open';
+const EDGE_GAP = 8;
 
-	slideDown: function(element, callback) {
-		if (!element)
+/* Every open/close goes through here so .open and aria-expanded agree. */
+function setOpen(li, on) {
+	li.classList.toggle('open', on);
+	li.querySelector(TRIGGER)?.setAttribute('aria-expanded', on ? 'true' : 'false');
+}
+
+function closeFlyouts(except) {
+	document.querySelectorAll(OPEN_LI).forEach((o) => {
+		if (o !== except) setOpen(o, false);
+	});
+}
+
+/* A panel hangs off its own item (li position:relative, ul inset-inline:0);
+ * near the right viewport edge it would overflow, so nudge it back in.
+ * Measured in a rAF because on the opening gesture the :hover/.open rule
+ * has often not applied yet and the panel still measures 0x0. */
+function clampDropdown(li) {
+	const menu = li.querySelector(':scope > ul');
+	if (!menu)
+		return;
+
+	if (li._fdClampRaf)
+		window.cancelAnimationFrame(li._fdClampRaf);
+
+	li._fdClampRaf = window.requestAnimationFrame(() => {
+		li._fdClampRaf = 0;
+		menu.style.left = '';
+		const r = menu.getBoundingClientRect();
+		if (!r.width)
 			return;
-		this.stop(element);
+		const overflowRight = r.right - (window.innerWidth - EDGE_GAP);
+		if (overflowRight > 0)
+			menu.style.left = -Math.min(overflowRight, r.left - EDGE_GAP) + 'px';
+	});
+}
 
-		var duration = this.getDuration();
+function clearClamps() {
+	document.querySelectorAll('#topmenu ul').forEach((m) => { m.style.left = ''; });
+}
 
-		element.style.display = 'block';
-		element.style.overflow = 'hidden';
-		element.style.height = '0px';
-		element.style.transition = 'height ' + duration + 'ms ease-out';
-		element.offsetHeight;
-
-		var targetHeight = element.scrollHeight;
-		element.style.height = targetHeight + 'px';
-
-		var cleanup = function() {
-			element.style.height = '';
-			element.style.overflow = '';
-			element.style.transition = '';
-			this.runningAnimations.delete(element);
-			if (typeof callback === 'function')
-				callback.call(element);
-		}.bind(this);
-
-		var timeoutId = setTimeout(cleanup, duration);
-		this.runningAnimations.set(element, { timeoutId: timeoutId, cleanup: cleanup });
-	},
-
-	slideUp: function(element, callback) {
-		if (!element)
+/* An <a role="button"> gets Enter natively but not Space; a disclosure
+ * control must answer both. */
+function wireSpaceKey(link) {
+	link.addEventListener('keydown', (ev) => {
+		if (ev.key !== ' ')
 			return;
-		this.stop(element);
+		ev.preventDefault();
+		link.click();
+	});
+}
 
-		var duration = this.getDuration();
-		var currentHeight = element.scrollHeight;
+/* Active mode's sections -> #topmenu: text pills, one dropdown panel
+ * level deep. dispatchpath = [mode, section, subsection, …]; sections
+ * sit at index (level+1) because the first call gets the mode node. */
+function renderMainMenu(tree, url, level) {
+	const ul = level ? E('ul', {}) : document.querySelector('#topmenu');
+	const children = ui.menu.getChildren(tree);
 
-		element.style.overflow = 'hidden';
-		element.style.height = currentHeight + 'px';
-		element.style.transition = 'height ' + duration + 'ms ease-out';
-		element.offsetHeight;
-		element.style.height = '0px';
+	if (children.length === 0 || level > 1)
+		return E([]);
 
-		var cleanup = function() {
-			element.style.display = 'none';
-			element.style.height = '';
-			element.style.overflow = '';
-			element.style.transition = '';
-			this.runningAnimations.delete(element);
-			if (typeof callback === 'function')
-				callback.call(element);
-		}.bind(this);
+	const idx = (level || 0) + 1;
 
-		var timeoutId = setTimeout(cleanup, duration);
-		this.runningAnimations.set(element, { timeoutId: timeoutId, cleanup: cleanup });
-	},
-
-	stop: function(element) {
-		if (!element)
+	children.forEach((child) => {
+		/* the bar carries its own Log out control, so the tree's
+		 * top-level admin/logout node would appear twice */
+		if (!level && child.name === 'logout')
 			return;
-		var animationData = this.runningAnimations.get(element);
-		if (animationData) {
-			clearTimeout(animationData.timeoutId);
-			animationData.cleanup();
+
+		const submenu = renderMainMenu(child, url + '/' + child.name, (level || 0) + 1);
+		const hasSub = !!submenu.firstElementChild;
+		const isActive = (L.env.dispatchpath[idx] === child.name);
+
+		const chevron = hasSub
+			? '<svg class="fs-chevron" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>'
+			: '';
+
+		/* active only paints; aria-current belongs on the LEAF alone — a
+		 * section header is a disclosure button, not a link to this page */
+		const link = E('a', {
+			'href': hasSub ? '#' : L.url(url, child.name),
+			'class': (isActive && !hasSub) ? 'active' : null,
+			'aria-current': (isActive && !hasSub) ? 'page' : null
+		});
+		link.innerHTML = (level ? '' : iconSvg(child.name)) + '<span class="fs-label"></span>' + chevron;
+		link.querySelector('.fs-label').textContent = _(child.title);
+
+		const li = E('li', {
+			'class': [
+				isActive ? 'active' : '',
+				hasSub ? 'has-sub' : ''
+			].join(' ').trim()
+		}, [ link, submenu ]);
+		/* stable node-name hook: titles are translated, node names are not */
+		if (!level)
+			li.dataset.name = child.name;
+
+		if (hasSub) {
+			/* Injective id: fold node names to code points so two
+			 * third-party names differing in punctuation can't collide. */
+			const subId = 'fd-sub-' +
+				String(child.name).replace(/[^a-z0-9]/gi, (c) => '_' + c.charCodeAt(0).toString(16)) +
+				'-' + idx;
+			submenu.id = subId;
+			link.setAttribute('role', 'button');
+			link.setAttribute('aria-controls', subId);
+			link.setAttribute('aria-expanded', 'false');
+
+			link.addEventListener('click', (ev) => {
+				ev.preventDefault();
+				const open = li.classList.contains('open');
+				closeFlyouts();
+				setOpen(li, !open);
+				if (!open)
+					clampDropdown(li);
+			});
+
+			wireSpaceKey(link);
+
+			/* hover opens purely via CSS; once a real mouse enters, drop a
+			 * tap-opened panel so two never stack and place this one.
+			 * Guarded on pointerType: a touch tap fires pointerenter
+			 * ('touch') before the click and would break tap-to-close. */
+			li.addEventListener('pointerenter', (ev) => {
+				if (ev.pointerType === 'mouse')
+					closeFlyouts();
+				clampDropdown(li);
+			});
 		}
-		element.style.transition = '';
-		element.offsetHeight;
-	}
-};
+
+		ul.appendChild(li);
+	});
+
+	return ul;
+}
+
+/* Modes -> #modemenu; drives the section menu for the active mode. */
+function renderModeMenu(root) {
+	const ul = document.querySelector('#modemenu');
+	const children = ui.menu.getChildren(root);
+
+	children.forEach((child, index) => {
+		const isActive = L.env.requestpath.length
+			? child.name === L.env.requestpath[0]
+			: index === 0;
+
+		ul.appendChild(E('li', { 'class': isActive ? 'active' : '' }, [
+			E('a', { 'href': L.url(child.name) }, [ _(child.title) ])
+		]));
+
+		if (isActive)
+			renderMainMenu(child, child.name);
+	});
+
+	if (children.length <= 1)
+		ul.classList.add('single');
+	if (ul.children.length > 1)
+		ul.style.display = '';
+}
+
+/* Section tabs -> #tabmenu (horizontal), recursive down the dispatch path. */
+function renderTabMenu(node, url, level) {
+	const container = document.querySelector('#tabmenu');
+	const ul = E('ul', { 'class': 'tabs' });
+	const children = ui.menu.getChildren(node);
+	let activeNode = null;
+
+	children.forEach((child) => {
+		const isActive = (L.env.dispatchpath[3 + (level || 0)] === child.name);
+		ul.appendChild(E('li', {
+			'class': 'tabmenu-item-%s %s'.format(child.name, isActive ? 'active' : '')
+		}, [
+			E('a', {
+				'href': L.url(url, child.name),
+				'aria-current': isActive ? 'page' : null
+			}, [ _(child.title) ])
+		]));
+		if (isActive)
+			activeNode = child;
+	});
+
+	if (ul.children.length === 0)
+		return;
+
+	container.appendChild(ul);
+	container.style.display = '';
+
+	if (activeNode)
+		renderTabMenu(activeNode, url + '/' + activeNode.name, (level || 0) + 1);
+}
 
 return baseclass.extend({
 	__init__: function() {
 		ui.menu.load().then(L.bind(this.render, this));
+
+		/* click-outside closes an open panel; Escape closes it and hands
+		 * focus back to its trigger (WCAG 2.2 SC 1.4.13). */
+		document.addEventListener('click', (ev) => {
+			if (!ev.target.closest?.('#topmenu > li.has-sub'))
+				closeFlyouts();
+		});
+		document.addEventListener('keydown', (ev) => {
+			if (ev.key !== 'Escape')
+				return;
+			const open = document.querySelector(OPEN_LI);
+			if (!open)
+				return;
+			const trigger = open.querySelector(TRIGGER);
+			closeFlyouts();
+			trigger?.focus();
+		});
+
+		/* a clamp computed at the old width is wrong at the new one;
+		 * coalesced because resize fires dozens of times per drag.
+		 * Width only: mobile URL-bar show/hide fires resize continuously. */
+		let lastWidth = window.innerWidth;
+		let reclampRaf = 0;
+		window.addEventListener('resize', () => {
+			if (window.innerWidth === lastWidth)
+				return;
+			lastWidth = window.innerWidth;
+			if (reclampRaf)
+				return;
+			reclampRaf = window.requestAnimationFrame(() => {
+				reclampRaf = 0;
+				clearClamps();
+			});
+		});
 	},
 
 	render: function(tree) {
-		var node = tree;
+		const modemenu = document.querySelector('#modemenu'),
+		      topmenu = document.querySelector('#topmenu'),
+		      tabmenu = document.querySelector('#tabmenu');
 
-		this.renderModeMenu(node);
+		/* inline, not a class: .fs-sidebar #modemenu's id specificity outranks
+		 * the .fs-modemenu { display:none } base rule, so the single-mode strip
+		 * must be hidden the same way fs-chrome hides it */
+		modemenu.innerHTML = '';
+		modemenu.style.display = 'none';
+		modemenu.classList.add('single');
+		topmenu.innerHTML = '';
+		tabmenu.innerHTML = '';
+		tabmenu.style.display = 'none';
+
+		renderModeMenu(tree);
 
 		if (L.env.dispatchpath.length >= 3) {
-			for (var i = 0; i < 3 && node; i++) {
-				node = node.children[L.env.dispatchpath[i]];
+			let node = tree, url = '';
+			for (let i = 0; i < 3 && node; i++) {
+				node = node.children && node.children[L.env.dispatchpath[i]];
+				url = url + (url ? '/' : '') + L.env.dispatchpath[i];
 			}
 			if (node)
-				this.renderTabMenu(node, L.env.dispatchpath.slice(0, 3).join('/'));
-		}
-
-		var sidebarToggle = document.querySelector('.showSide');
-		var darkMask = document.querySelector('.darkMask');
-
-		if (sidebarToggle)
-			sidebarToggle.addEventListener('click', ui.createHandlerFn(this, 'handleSidebarToggle'));
-		if (darkMask)
-			darkMask.addEventListener('click', ui.createHandlerFn(this, 'handleSidebarToggle'));
-
-		document.addEventListener('keydown', function(ev) {
-			if (ev.key === 'Escape' && sidebarToggle && sidebarToggle.classList.contains('active')) {
-				sidebarToggle.click();
-				sidebarToggle.focus();
-			}
-		});
-	},
-
-	handleMenuExpand: function(ev) {
-		var target = ev.target;
-		var slideMenu = target.nextElementSibling;
-		var shouldCollapse = false;
-
-		var activeMenus = document.querySelectorAll('.main .main-left .nav > li > ul.active');
-		activeMenus.forEach(function(ul) {
-			SlideAnimations.stop(ul);
-			ul.classList.remove('active');
-			ul.previousElementSibling.classList.remove('active');
-			SlideAnimations.slideUp(ul);
-			if (ul === slideMenu)
-				shouldCollapse = true;
-		});
-
-		if (!slideMenu)
-			return;
-
-		if (!shouldCollapse) {
-			slideMenu.classList.add('active');
-			target.classList.add('active');
-			SlideAnimations.slideDown(slideMenu);
-			target.blur();
-		}
-
-		ev.preventDefault();
-		ev.stopPropagation();
-	},
-
-	renderMainMenu: function(tree, url, level) {
-		var currentLevel = (level || 0) + 1;
-		var menuContainer = E('ul', { 'class': level ? 'slide-menu' : 'nav' });
-		var children = ui.menu.getChildren(tree);
-
-		if (children.length === 0 || currentLevel > 2)
-			return E([]);
-
-		for (var i = 0; i < children.length; i++) {
-			var child = children[i];
-			var isActive = (
-				(L.env.dispatchpath[currentLevel] === child.name) &&
-				(L.env.dispatchpath[currentLevel - 1] === tree.name)
-			);
-
-			var submenu = this.renderMainMenu(child, url + '/' + child.name, currentLevel);
-			var hasChildren = submenu.children.length > 0;
-
-			var slideClass = hasChildren ? 'slide' : null;
-			// The .menu/.food classes carry the leading mask icon and the
-			// chevron via CSS descendant selectors, so they are top-level
-			// only: on submenu links the absolutely positioned ::before
-			// would overlap the first character.
-			var linkClasses = [];
-			if (currentLevel === 1)
-				linkClasses.push(hasChildren ? 'menu' : 'food');
-			if (isActive) {
-				menuContainer.classList.add('active');
-				if (slideClass)
-					slideClass += ' active';
-				linkClasses.push('active');
-			}
-			var menuClass = linkClasses.length ? linkClasses.join(' ') : null;
-
-			var anchorAttrs = {
-				'href': L.url(url, child.name),
-				'click': (currentLevel === 1) ? ui.createHandlerFn(this, 'handleMenuExpand') : null,
-				'class': menuClass,
-				'data-title': child.title.replace(/ /g, '_')
-			};
-			// Icons are keyed by the stable dispatcher node name, not the
-			// translated title, so localized builds get correct icons.
-			if (currentLevel === 1 && child.name)
-				anchorAttrs['data-nav'] = String(child.name).toLowerCase();
-
-			menuContainer.appendChild(E('li', { 'class': slideClass }, [
-				E('a', anchorAttrs, [_(child.title)]),
-				submenu
-			]));
-		}
-
-		if (currentLevel === 1) {
-			var mainMenuElement = document.querySelector('#mainmenu');
-			if (mainMenuElement) {
-				mainMenuElement.appendChild(menuContainer);
-				mainMenuElement.style.display = '';
-			}
-		}
-
-		return menuContainer;
-	},
-
-	renderModeMenu: function(tree) {
-		var menu = document.querySelector('#modemenu');
-		var children = ui.menu.getChildren(tree);
-
-		for (var i = 0; i < children.length; i++) {
-			var isActive = (L.env.requestpath.length ? children[i].name == L.env.requestpath[0] : i == 0);
-			if (i > 0)
-				menu.appendChild(E([], ['\u00a0|\u00a0']));
-			menu.appendChild(E('li', {}, [
-				E('a', {
-					'href': L.url(children[i].name),
-					'class': isActive ? 'active' : null
-				}, [_(children[i].title)])
-			]));
-			if (isActive)
-				this.renderMainMenu(children[i], children[i].name);
-		}
-		if (menu.children.length > 1)
-			menu.style.display = '';
-	},
-
-	renderTabMenu: function(tree, url, level) {
-		var container = document.querySelector('#tabmenu');
-		var currentLevel = (level || 0) + 1;
-		var tabContainer = E('ul', { 'class': 'tabs' });
-		var children = ui.menu.getChildren(tree);
-		var activeNode = null;
-
-		if (children.length === 0)
-			return E([]);
-
-		for (var i = 0; i < children.length; i++) {
-			var child = children[i];
-			var isActive = (L.env.dispatchpath[currentLevel + 2] === child.name);
-			var activeClass = isActive ? ' active' : '';
-
-			tabContainer.appendChild(E('li', {
-				'class': 'tabmenu-item-%s%s'.format(child.name, activeClass)
-			}, [
-				E('a', { 'href': L.url(url, child.name) }, [_(child.title)])
-			]));
-
-			if (isActive)
-				activeNode = child;
-		}
-
-		if (container) {
-			container.appendChild(tabContainer);
-			container.style.display = '';
-
-			if (activeNode)
-				this.renderTabMenu(activeNode, url + '/' + activeNode.name, currentLevel);
-		}
-
-		return tabContainer;
-	},
-
-	handleSidebarToggle: function() {
-		var showSideButton = document.querySelector('.showSide');
-		var sidebar = document.querySelector('#mainmenu');
-		var darkMask = document.querySelector('.darkMask');
-		var scrollbarArea = document.querySelector('.main-right');
-
-		if (!showSideButton || !sidebar || !darkMask || !scrollbarArea)
-			return;
-
-		if (showSideButton.classList.contains('active')) {
-			showSideButton.classList.remove('active');
-			showSideButton.setAttribute('aria-expanded', 'false');
-			sidebar.classList.remove('active');
-			scrollbarArea.classList.remove('active');
-			darkMask.classList.remove('active');
-		} else {
-			showSideButton.classList.add('active');
-			showSideButton.setAttribute('aria-expanded', 'true');
-			sidebar.classList.add('active');
-			scrollbarArea.classList.add('active');
-			darkMask.classList.add('active');
+				renderTabMenu(node, url);
 		}
 	}
 });

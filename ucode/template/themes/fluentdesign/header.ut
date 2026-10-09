@@ -1,87 +1,33 @@
 {#
-	luci-theme-FluentDesign
-	A Microsoft Fluent Design language theme for LuCI.
+	luci-theme-FluentDesign v2
 
-	Licensed to the public under the Apache License 2.0.
+	Dark top-bar shell, vendored visually from luci-theme-footstrap
+	(Apache-2.0). Structure contract: every container opened here is
+	closed in footer.ut; the dispatched view is emitted between them and
+	must land inside .fs-content.
 
-	Structure contract: every container opened here is closed in footer.ut.
-	LuCI injects the rendered view into #maincontent > .container, so the
-	open/close pairing must stay symmetric or views land in the wrong node.
+	With blank_page=true only <head>, the pattern layer and the login
+	form chrome render (see sysauth.ut).
 -#}
 
 {%
-	import { access } from 'fs';
 	import { getuid, getspnam } from 'luci.core';
-	import { cursor } from 'uci';
 
-	const boardinfo = ubus.call("system", "board");
-	const hostname = striptags(boardinfo?.hostname ?? '?');
-
-	let cfg = cursor();
+	const boardinfo = ubus.call('system', 'board') ?? {};
+	const hostname = striptags(boardinfo.hostname ?? 'OpenWrt');
+	const empty_password = (getuid() == 0 && getspnam('root')?.pwdp === '');
 
 	http.prepare_content('text/html; charset=UTF-8');
 
-	// Validate user-supplied personalization before injecting it as CSS.
-	function validColor(value, fallback) {
-		return type(value) == 'string' && match(value, /^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/) ? value : fallback;
-	}
-
-	function validNumber(value, fallback, min, max) {
-		return type(value) == 'string' &&
-			match(value, /^(0|[1-9][0-9]*)(\.[0-9]+)?$/) &&
-			+value >= min && +value <= max ? value : fallback;
-	}
-
-	let mode = 'normal';
-	let primary = '#0078d4';
-	let dark_primary = '#2899f5';
-	let font_scale = '1';
-	let blur_radius = '30';
-	let acrylic_opacity = '0.7';
-
-	if (access('/etc/config/fluentdesign')) {
-		primary = validColor(cfg.get_first('fluentdesign', 'global', 'primary'), primary);
-		dark_primary = validColor(cfg.get_first('fluentdesign', 'global', 'dark_primary'), dark_primary);
-		font_scale = validNumber(cfg.get_first('fluentdesign', 'global', 'font_size'), font_scale, 0.8, 1.3);
-		blur_radius = validNumber(cfg.get_first('fluentdesign', 'global', 'blur'), blur_radius, 0, 100);
-		acrylic_opacity = validNumber(cfg.get_first('fluentdesign', 'global', 'acrylic_opacity'), acrylic_opacity, 0, 1);
-		let configured_mode = cfg.get_first('fluentdesign', 'global', 'mode');
-		if (configured_mode == 'normal' || configured_mode == 'dark' || configured_mode == 'light')
-			mode = configured_mode;
-	}
-
-	const bar_color = mode == 'dark' ? dark_primary : primary;
-	const has_config = access('/etc/config/fluentdesign');
+	const fs_page = entityencode(join('-', length(ctx.path) ? ctx.path : ctx.request_path), true);
 -%}
 <!DOCTYPE html>
-<html lang="{{ dispatcher.lang }}">
+<html lang="{{ dispatcher.lang }}" data-layout="top" data-darkmode="true" data-theme="dark" data-bs-theme="dark">
 
 <head>
-	{% include("themes/" + theme + "/head_meta", { hostname: hostname, node: node, bar_color: bar_color, media: media }) %}
+	{% include("themes/" + theme + "/head_meta", { hostname: hostname, node: node }) %}
 
 	<link rel="stylesheet" href="{{ media }}/css/cascade.css">
-	{% if (mode == 'normal'): %}
-	<link rel="stylesheet" href="{{ media }}/css/dark.css" media="(prefers-color-scheme: dark)">
-	{% elif (mode == 'dark'): %}
-	<link rel="stylesheet" href="{{ media }}/css/dark.css">
-	{% endif %}
-	{% if (has_config): %}
-	<style>
-		:root {
-			--primary: {{ primary }};
-			--font-scale: {{ font_scale }};
-			--acrylic-blur: {{ blur_radius }}px;
-			--acrylic-opacity: {{ acrylic_opacity }};
-		}
-		{% if (mode == 'normal'): %}
-		@media (prefers-color-scheme: dark) {
-			:root { --primary: {{ dark_primary }}; }
-		}
-		{% elif (mode == 'dark'): %}
-		:root { --primary: {{ dark_primary }}; }
-		{% endif %}
-	</style>
-	{% endif %}
 	{% if (node?.css): %}
 	<link rel="stylesheet" href="{{ resource }}/{{ node.css }}">
 	{% endif %}
@@ -95,53 +41,69 @@
 	<script src="{{ resource }}/luci.js?v={{ version.luciversion }}"></script>
 </head>
 
-<body
-	class="lang_{{ dispatcher.lang }}{% if (ctx.authsession): %} logged-in{% endif %}"
-	data-page="{{ entityencode(join('-', ctx.request_path), true) }}">
+<body class="lang_{{ dispatcher.lang }}{% if (ctx.authsession): %} logged-in{% endif %}" data-page="{{ fs_page }}">
 
-	<div class="main">
-		<div class="main-left" id="mainmenu" style="display:none">
-			<div class="sidenav-header">
-				<a class="brand" href="/">
-					<img src="{{ media }}/img/logo.svg" class="brand-logo" alt="">
-					<span class="brand-text">{{ hostname }}</span>
+	<div class="fs-pattern" data-fs-chrome aria-hidden="true"></div>
+
+	{% if (!blank_page): %}
+	<a class="fs-skip" data-fs-chrome href="#maincontent">{{ _('Skip to content') }}</a>
+
+	<div class="fs-shell">
+		<nav class="fs-sidebar" data-fs-chrome aria-label="{{ _('Menu') }}">
+			<div class="fs-brandrow">
+				<a class="fs-brand" href="{{ dispatcher.build_url() }}">
+					<span class="fs-logo">
+						<svg aria-hidden="true" viewBox="-9 -1 100 100"><path d="m40.5 50.8a6.6 6.6 0 1 0 0 13.2 6.6 6.6 0 0 0 0-13.2m-40.5-33.9 7 6.8a47.5 47.5 0 0 1 67.2 0l7-6.8a57.2 57.2 0 0 0-81.2 0" fill="#00b5e2"/><path d="m12.5 29.2 6.8 7a30 30 0 0 1 42.6 0l6.8-7a39.7 39.7 0 0 0-56.3 0" fill="#00b5e2"/><path d="m24.8 41.6 6.8 6.9a12.6 12.6 0 0 1 18 0l6.8-6.9a22.3 22.3 0 0 0-31.6 0" fill="#00b5e2"/><path class="fs-logo-ring" d="m64.9 39.7a30.2 30.2 0 1 1-48.7 0l-6.9-7a39.9 39.9 0 1 0 62.5 0z"/></svg>
+					</span>
+					<span class="fs-wordmark">{{ entityencode(hostname, true) }}</span>
 				</a>
 			</div>
-		</div>
-		<div class="main-right">
-			<header class="app-header">
-				<div class="fill">
-					<div class="container">
-						<div class="flex1">
-							<button type="button" class="showSide" aria-label="{{ entityencode(_('Toggle navigation'), true) }}" aria-controls="mainmenu" aria-expanded="false">
-								<svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-									<path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-								</svg>
-							</button>
-							<a class="brand" href="/">{{ hostname }}</a>
-						</div>
-						<div class="status" id="indicators"></div>
-					</div>
-				</div>
-			</header>
-			<div class="darkMask"></div>
-			<div id="maincontent">
-				<div class="container">
-					{% if (getuid() == 0 && getspnam('root')?.pwdp === ''): %}
-					<div class="alert-message error fluent-alert">
-						<h4>{{ _('No password set!') }}</h4>
-						<p>{{ _('There is no password set on this router. Please configure a root password to protect the web interface.') }}</p>
-						{% if (dispatcher.lookup("admin/system/admin")): %}
-						<div class="right"><a class="btn cbi-button cbi-button-action" href="{{ dispatcher.build_url("admin/system/admin") }}">{{ _('Go to password configuration...') }}</a></div>
-						{% endif %}
-					</div>
+
+			<div id="indicators" class="fs-indicators"></div>
+
+			<ul class="nav" id="topmenu"></ul>
+			<ul id="modemenu" class="fs-modemenu"></ul>
+
+			{% if (dispatcher.lookup("admin/logout")): %}
+			<a class="fs-logout" href="{{ dispatcher.build_url('admin/logout') }}" title="{{ entityencode(_('Log out'), true) }}" aria-label="{{ entityencode(_('Log out'), true) }}">
+				<svg class="fs-ico" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"/><path d="M14 12h7m0 0-3-3m3 3-3 3"/></svg>
+				<span class="fs-label">{{ _('Log out') }}</span>
+			</a>
+			{% endif %}
+		</nav>
+
+		<main class="fs-main" id="maincontent" tabindex="-1">
+			<div class="fs-title fs-sr" data-fs-chrome>
+				<h1 class="fs-title-main">{{ entityencode(striptags(node?.title ? _(node.title) : hostname), true) }}</h1>
+			</div>
+
+			<div class="fs-content" data-page="{{ fs_page }}">
+				{% if (empty_password): %}
+				<div class="alert-message error">
+					<h4>{{ _('No password set!') }}</h4>
+					<p>{{ _('There is no password set on this router. Please configure a root password to protect the web interface.') }}</p>
+					{% if (dispatcher.lookup("admin/system/admin")): %}
+					<div class="right"><a class="btn cbi-button cbi-button-action" href="{{ dispatcher.build_url("admin/system/admin") }}">{{ _('Go to password configuration...') }}</a></div>
 					{% endif %}
+				</div>
+				{% endif %}
 
-					<noscript>
-						<div class="alert-message error fluent-alert">
-							<h4>{{ _('JavaScript required!') }}</h4>
-							<p>{{ _('You must enable JavaScript in your browser or LuCI will not work properly.') }}</p>
-						</div>
-					</noscript>
+				{% if (boardinfo.rootfs_type == "initramfs"): %}
+				<div class="alert-message warning">
+					<h4>{{ _('System running in recovery (initramfs) mode.') }}</h4>
+					<p>{{ _('No changes to settings will be stored and are lost after rebooting. This mode should only be used to install a firmware upgrade') }}</p>
+					{% if (dispatcher.lookup("admin/system/flash")): %}
+					<div class="right"><a class="btn cbi-button cbi-button-action" href="{{ dispatcher.build_url("admin/system/flash") }}">{{ _('Go to firmware upgrade...') }}</a></div>
+					{% endif %}
+				</div>
+				{% endif %}
 
-					<div id="tabmenu" style="display:none"></div>
+				<noscript>
+					<div class="alert-message error">
+						<h4>{{ _('JavaScript required!') }}</h4>
+						<p>{{ _('You must enable JavaScript in your browser or LuCI will not work properly.') }}</p>
+					</div>
+				</noscript>
+
+				<div id="tabmenu" style="display:none"></div>
+	{% endif %}

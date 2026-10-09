@@ -1,7 +1,0 @@
-config global 'global'
-	option mode 'normal'
-	option primary '#0078d4'
-	option dark_primary '#2899f5'
-	option font_size '1.0'
-	option blur '30'
-	option acrylic_opacity '0.7'

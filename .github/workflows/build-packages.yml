@@ -3,9 +3,9 @@ name: Build packages (SDK)
 # Reusable workflow: builds the installable package with the OFFICIAL
 # OpenWrt SDK of every maintained release line (24.10 -> .ipk via opkg,
 # 25.12 -> .apk), proving the luci.mk packaging contract (ucode templates,
-# media, conffile, menu.d/acl.d registration) really assembles. The two
-# resulting packages are uploaded as run artifacts. Called by both the
-# push/PR patrol workflow and the tag release workflow.
+# media, uci-defaults) really assembles. The two resulting packages are
+# uploaded as run artifacts. Called by both the push/PR patrol workflow and
+# the tag release workflow.
 
 on:
   workflow_call:
@@ -135,16 +135,15 @@ jobs:
           # must carry every file class the package is supposed to ship.
           for f in \
             usr/share/ucode/luci/template/themes/fluentdesign/header.ut \
+            usr/share/ucode/luci/template/themes/fluentdesign/footer.ut \
             usr/share/ucode/luci/template/themes/fluentdesign/sysauth.ut \
-            usr/share/ucode/luci/template/themes/fluentdesign/footer_login.ut \
+            usr/share/ucode/luci/template/themes/fluentdesign/head_meta.ut \
             www/luci-static/fluentdesign/css/cascade.css \
-            www/luci-static/fluentdesign/css/dark.css \
-            www/luci-static/resources/view/system/fluentdesign.js \
+            www/luci-static/fluentdesign/pattern/cats.svg \
+            www/luci-static/fluentdesign/logo.svg \
+            www/luci-static/fluentdesign/manifest.json \
             www/luci-static/resources/menu-fluentdesign.js \
-            etc/config/fluentdesign \
-            etc/uci-defaults/30_luci-theme-FluentDesign \
-            usr/share/luci/menu.d/luci-theme-fluentdesign.json \
-            usr/share/rpcd/acl.d/luci-theme-fluentdesign.json
+            etc/uci-defaults/30_luci-theme-FluentDesign
           do
             if ! find build_dir -type f -path "*/$f" | grep -q .; then
               echo "missing from staging: $f" >&2
@@ -152,6 +151,24 @@ jobs:
             fi
           done
           echo "all packaged paths present"
+          # v2 removed the settings page, UCI conffile and login templates:
+          # none of them may sneak back into the assembled package.
+          for f in \
+            usr/share/ucode/luci/template/themes/fluentdesign/header_login.ut \
+            usr/share/ucode/luci/template/themes/fluentdesign/footer_login.ut \
+            usr/share/ucode/luci/template/themes/fluentdesign/out_header_login.ut \
+            www/luci-static/fluentdesign/css/dark.css \
+            www/luci-static/resources/view/system/fluentdesign.js \
+            etc/config/fluentdesign \
+            usr/share/luci/menu.d/luci-theme-fluentdesign.json \
+            usr/share/rpcd/acl.d/luci-theme-fluentdesign.json
+          do
+            if find build_dir -type f -path "*/$f" | grep -q .; then
+              echo "removed file still staged: $f" >&2
+              exit 1
+            fi
+          done
+          echo "no removed files staged"
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v4

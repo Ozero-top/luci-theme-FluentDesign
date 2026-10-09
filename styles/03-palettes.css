@@ -1,0 +1,48 @@
+@layer tokens {
+	/* FluentDesign v2: single dark palette, vendored from footstrap's dark
+	 * "footstrap/GitHub Primer dimmed" colourway. Light mode, the alternate
+	 * palettes and every appearance axis were intentionally removed — the
+	 * chrome hardcodes <html data-darkmode="true">. */
+	:root {
+		/* surfaces */
+		--fs-bg: #1c2128;
+		--fs-bg-base: #1c2128;
+		--fs-panel: #22272e;
+		--fs-panel-base: #22272e;
+		--fs-panel2: #2d333b;
+		--fs-panel2-base: #2d333b;
+		--fs-border: #444c56;
+		--fs-border-base: #444c56;
+		--fs-track: #373e47;
+
+		/* ink */
+		--fs-text: #adbac7;
+		--fs-dim: #8f9cab;
+		--fs-faint: #959ca5;
+
+		/* accent + status (dark fills use dark ink #10151c) */
+		--fs-accent: #569df5;
+		--fs-accent-base: #569df5;
+		--fs-accent-soft: color-mix(in srgb, var(--fs-accent) 15%, transparent);
+		--fs-good: #5aad5d;
+		--fs-good-base: #5aad5d;
+		--fs-warn: #c79128;
+		--fs-warn-base: #c79128;
+		--fs-danger: #ea7a74;
+		--fs-danger-base: #ea7a74;
+		--fs-on-accent: #10151c;
+		--fs-on-good: #10151c;
+		--fs-on-warn: #10151c;
+		--fs-on-danger: #10151c;
+
+		/* placeholder ink (dark mix) */
+		--fs-placeholder-mix: 64%;
+		--fs-placeholder: color-mix(in oklch, var(--fs-text) var(--fs-placeholder-mix), var(--fs-panel2));
+
+		/* inert wallpaper axes — the built-in cat pattern is always on,
+		 * see theme/15-wallpaper.css */
+		--fs-login-bg-url: none;
+		--fs-photo-dim: 74%;
+		--fs-photo-scrim: color-mix(in srgb, var(--fs-bg-base) var(--fs-photo-dim), transparent);
+	}
+}

@@ -4,46 +4,40 @@
 
 [简体中文](README.md) | **English**
 
-A [Microsoft Fluent Design](https://fluent2.microsoft.design/) language theme
-for [OpenWrt LuCI](https://github.com/openwrt/luci), built on the current
-ucode-template LuCI stack (OpenWrt 22.03 through 25.12 / SNAPSHOT).
+A **dark top-navigation** theme for [OpenWrt LuCI](https://github.com/openwrt/luci),
+built on the current ucode-template LuCI stack (OpenWrt 22.03 through
+25.12 / SNAPSHOT). The v2 visual layer is vendored from
+luci-theme-footstrap (Apache-2.0).
 
-- Accent `#0078d4`, 4–8 px rounding, soft layered shadows
-- Selective acrylic (app header, mobile drawer, login card)
-- 150/200 ms motion, `scale(0.97)` press, 2 px offset focus ring
-- Light **and** dark scheme (follows system or forced via UCI)
-- Personalization page: accent color, dark accent, global font scale,
-  acrylic blur/opacity, color mode
-- Random local image/video login backgrounds (no network fetch)
-- Fully responsive: desktop sidebar -> mobile acrylic drawer
-- Same DOM contract as the stock themes, so every LuCI module keeps working
+- Charcoal dark surfaces: `#1c2128` page / `#22272e` cards, blue accent `#569df5`
+- Horizontal top navigation: text-only pills, hover/tap dropdown panels
+- 12 px rounded cards, Manrope→system font stack, built-in cat pattern texture
+- Dark-only: no light scheme, no appearance page, no UCI configuration
+- Login is a dark centered card rendered server-side (works with JS off,
+  keeps every pluggable-auth/2FA field)
+- Below 860 px the bar wraps to two rows: brand row plus a scrollable pill strip
+- Same menu/tabs/indicators DOM contract as stock, so every LuCI module keeps working
 
 ## Directory layout
 
 ```
 luci-theme-FluentDesign/
 ├── Makefile                                  # OpenWrt package (+luci-base)
+├── build-css.mjs                             # dev-only: concat styles/ slices into cascade.css
+├── styles/                                   # CSS source slices (@layer tokens/base/theme/page)
 ├── ucode/template/themes/fluentdesign/       # ucode templates (.ut)
 │   ├── head_meta.ut
 │   ├── header.ut / footer.ut                 # admin shell (containers paired)
-│   ├── header_login.ut / footer_login.ut
-│   ├── out_header_login.ut
-│   └── sysauth.ut                            # login page
+│   └── sysauth.ut                            # login page (blank header/footer)
 ├── htdocs/luci-static/
 │   ├── fluentdesign/                         # theme media root
-│   │   ├── css/cascade.css                   # light + layout + components
-│   │   ├── css/dark.css                      # dark scheme overrides
-│   │   ├── icon/  (favicon.svg, apple-touch.svg, arrow.svg, manifest.json)
-│   │   ├── img/   (logo.svg, login-bg.svg)
-│   │   └── background/                       # put custom login backgrounds here
+│   │   ├── css/cascade.css                   # the single stylesheet (build output, committed)
+│   │   ├── pattern/cats.svg                  # built-in pattern texture
+│   │   ├── logo.svg / logo_48.png / app-icon-192.png / manifest.json
 │   └── resources/
-│       ├── menu-fluentdesign.js              # menu renderer
-│       └── view/system/fluentdesign.js(.css) # theme settings page
-├── root/etc/config/fluentdesign              # UCI defaults (conffile)
+│       └── menu-fluentdesign.js              # top-bar menu renderer (self-contained, ui/baseclass only)
 ├── root/etc/uci-defaults/30_luci-theme-FluentDesign
-├── root/usr/share/luci/menu.d/*.json         # settings page menu entry
-├── root/usr/share/rpcd/acl.d/*.json          # UCI read/write ACL
-└── tests/                                    # cross-branch browser test harness
+└── tests/                                    # cross-branch browser harness (1280 + 390 viewports)
 ```
 
 Runtime mapping (performed by `luci.mk`):
@@ -53,9 +47,7 @@ Runtime mapping (performed by `luci.mk`):
 | `ucode/**`                          | `/usr/share/ucode/luci/template/themes/fluentdesign/` |
 | `htdocs/luci-static/fluentdesign/`  | `/www/luci-static/fluentdesign/`            |
 | `htdocs/luci-static/resources/`     | `/www/luci-static/resources/`               |
-| `root/etc/config/...`               | `/etc/config/` (conffile, kept on upgrade)  |
 | `root/etc/uci-defaults/...`         | `/etc/uci-defaults/` (run once on install)  |
-| `root/usr/share/{luci/menu.d,rpcd/acl.d}/...` | same paths under `/usr/share/`      |
 
 ## Requirements
 
@@ -65,26 +57,21 @@ Runtime mapping (performed by `luci.mk`):
 ## Compatibility
 
 **OpenWrt / LuCI server stack** — the theme uses the ucode template
-LuCI (the same stack as the stock 22.03+ themes), the standard
-`luci-base` dispatcher, rpcd ACL JSON and `menu.d` registration:
+LuCI (the same stack as the stock 22.03+ themes) and the standard
+`luci-base` dispatcher:
 
 | Stack | Status |
 |--------|--------|
-| OpenWrt 25.12.x (apk; latest stable, verified on 25.12.5) | Supported |
-| OpenWrt 24.10.x (opkg; verified up to 24.10.x) | Supported |
+| OpenWrt 25.12.x (apk; latest stable, verified on 25.12) | Supported |
+| OpenWrt 24.10.x (opkg) | Supported |
 | OpenWrt 23.05, 22.03 | Supported |
 | ImmortalWrt on the matching baselines (22.03 / 23.05 / 24.10) | Supported |
 | OpenWrt 21.02 and older (Lua `.htm` template LuCI) | Not supported |
 
-> Note: there is no OpenWrt "25.10" release — after 24.10 the next
-> stable branch is 25.12 (25.12.0 released 2026-03-18). No fork or
-> special build is needed for it: the settings view was tested against
-> the openwrt-25.12 LuCI core (all automated checks pass) and the
-> ucode template / `luci.mk` packaging contracts are unchanged.
-
-Compatibility is locked by CI: every push runs the same 53-check browser
-harness against the real `luci-base` core of openwrt-22.03 / 23.05 /
-24.10 / 25.12 (required) and master (non-blocking canary).
+Compatibility is locked by CI: every push runs the same browser harness
+against the real `luci-base` core of openwrt-22.03 / 23.05 / 24.10 /
+25.12 (required) and master (non-blocking canary), at both 1280 px and
+390 px viewports, with zero tolerated console/network errors.
 
 **Web server** — transparent, because the theme sits on the LuCI
 rendering layer and ships only static assets plus ucode templates:
@@ -98,17 +85,15 @@ rendering layer and ships only static assets plus ucode templates:
 
 **LuCI pages and third-party apps** — every official module and
 third-party application that targets the standard LuCI layout renders
-inside the theme: the header/footer keep the stock DOM contract
-(`#mainmenu`, `#modemenu`, `#tabmenu`, `#maincontent > .container`,
-`.showSide`, `.darkMask`), and the settings page uses only public
-`form` / `uci` / `ui` APIs.
+inside the theme: the shell keeps the stock DOM contract
+(`#topmenu`, `#modemenu`, `#tabmenu`, `#indicators`, `#maincontent`),
+and menu/tabs/poll indicators are rendered by `menu-fluentdesign.js`
+using only public `ui` APIs.
 
-**Browsers** — modern engines (Chrome/Edge 111+, Firefox 113+,
-Safari 16.2+) get the full experience including live-derived
-hover/active accent colors and dynamic viewport sizing. Older
-engines degrade gracefully via `@supports` / static-value fallbacks
-(default Fluent accent, `100vh`, control default rounding); all
-functions, settings and navigation keep working.
+**Browsers** — recent Chrome/Edge, Firefox and Safari engines get the
+full experience; older engines degrade gracefully via `@supports` and
+static-value fallbacks (`color-mix`, `:has()`, …), with all functions
+and navigation still available.
 
 ## Install
 
@@ -133,7 +118,7 @@ functions, settings and navigation keep working.
 opkg update
 opkg install luci-theme-fluentdesign_*.ipk
 # apk-based releases (24.10-SNAPSHOT / 25.12):
-# apk add --allow-untrusted luci-theme-fluentdesign_*.apk
+# apk add --allow-untrusted luci-theme-fluentdesign-*.apk
 ```
 
 The `uci-defaults` script registers the theme and activates it on a fresh
@@ -175,49 +160,29 @@ uci commit luci
   /etc/init.d/rpcd reload
   ```
 
-## Personalization
-
-Settings are managed on the theme's own page:
-**System -> FluentDesign** (UCI file `/etc/config/fluentdesign`,
-section type `global`). Every option is optional and validated; invalid
-values are ignored and the Fluent defaults are used:
-
-```sh
-uci set fluentdesign.global.mode='normal'          # normal | light | dark
-uci set fluentdesign.global.primary='#0078d4'      # light-scheme accent
-uci set fluentdesign.global.dark_primary='#2899f5'
-uci set fluentdesign.global.font_size='1'          # 0.8 - 1.3 global scale
-uci set fluentdesign.global.blur='30'              # 0 - 100 px acrylic blur
-uci set fluentdesign.global.acrylic_opacity='0.7'  # 0 - 1 surface opacity
-uci commit fluentdesign
-```
-
-- `mode=normal` follows the OS/browser `prefers-color-scheme`;
-  `light`/`dark` force a scheme.
-- `font_size` multiplies the root rem size (whole UI scales).
-- Colors accept `#rgb` or `#rrggbb` only; invalid input is discarded to
-  prevent stylesheet injection.
-
-### Custom login background
-
-Place image/video files into
-`/www/luci-static/fluentdesign/background/` (supported: jpg/jpeg/png/gif/webp
-and mp4/webm). One is chosen at random per visit; videos honor
-`prefers-reduced-motion` and start muted with a mute toggle. There is no
-online wallpaper download, so no `wget`/`rpcd` dependency is required.
-
 ## Development & tests
 
-`tests/` contains a self-contained browser harness with 53 assertions
-(structure, segmented/color/slider widgets, hex validation, live preview,
-dark stylesheet switching, teardown, save footer). It runs against the
-**real** luci-base core JS of any openwrt/luci branch:
+`cascade.css` is a zero-dependency build output: each slice under
+`styles/` is wrapped in one `@layer`, and `build-css.mjs` unwraps and
+concatenates them in `tokens/base/theme/page` order (no Node needed for
+packaging — the output is committed). Rebuild after editing styles:
 
 ```sh
+node build-css.mjs
+```
+
+`tests/` contains a self-contained browser harness covering the dark
+tokens, the pattern layer, pill/dropdown disclosure semantics
+(aria/Escape/outside-click/edge-clamp), tabs and the bar geometry at
+both 1280 px and 390 px. It runs against the **real** luci-base core
+JS of any openwrt/luci branch:
+
+```sh
+node build-css.mjs
 bash tests/assemble-site.sh openwrt-25.12 site
 python3 tests/serve-harness.py site 8765 &
 cd tests && npm install && npx playwright install chromium
-node run-browser-tests.mjs http://127.0.0.1:8765/index.html
+node run-browser-tests.mjs http://127.0.0.1:8765/shell.html
 ```
 
 ## Uninstall
@@ -233,14 +198,16 @@ opkg remove luci-theme-fluentdesign
 
 | Version | Date       | Notes                          |
 |---------|------------|--------------------------------|
+| 2.0.0   | 2026-10-09 | Rewrite as a dark top-navigation theme (footstrap look); light mode and the settings page removed |
 | 1.1.3   | 2026-10-09 | Locale-independent nav icons, acrylic desktop sidebar |
 | 1.1.2   | 2026-10-09 | Fix sidebar height chain and submenu icon overlap |
 | 1.1.1   | 2026-10-08 | Browser CSS fallbacks & compat matrix |
 | 1.1.0   | 2026-10-08 | Theme settings page (UCI)      |
 | 1.0.0   | 2026-10-08 | Initial Fluent Design release  |
 
-Semantic versioning is used; UCI option compatibility is preserved within a
-major version.
+2.0.0 is a major release: the old settings page,
+`/etc/config/fluentdesign` and custom login backgrounds were removed;
+the theme no longer reads any UCI configuration.
 
 ## License
 

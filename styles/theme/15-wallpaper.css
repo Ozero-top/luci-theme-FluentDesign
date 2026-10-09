@@ -1,0 +1,41 @@
+@layer theme {
+	/* FluentDesign v2: the footstrap cat-doodle pattern is a BUILT-IN, always-on
+	 * body texture (footstrap shipped it as an upload-only wallpaper axis;
+	 * that settings machinery was removed). The SVG is masked with the theme
+	 * ink so only its alpha silhouette is painted. Vendored from footstrap
+	 * wallpapers/svg/cats.svg (Apache-2.0).
+	 *
+	 * Paint chain: .fs-pattern is position:fixed with z-index:-1, so it paints
+	 * ABOVE the root element's own background but BELOW block descendants'
+	 * backgrounds. The opaque canvas colour therefore lives on :root while
+	 * body/.fs-main/footer stay transparent; the attribute-qualified
+	 * selectors outrank the plain body/.fs-main/footer rules in 20-shell.css. */
+	:root {
+		--fs-pattern-url: url("/luci-static/fluentdesign/pattern/cats.svg");
+		--fs-pattern-size: 440px;
+		--fs-pattern-strength: .2;
+	}
+
+	:root[data-layout="top"] { background-color: var(--fs-bg); }
+	:root[data-layout="top"] body,
+	:root[data-layout="top"] .fs-main { background-color: transparent; }
+	:root[data-layout="top"] footer.fs-footer { background: transparent; }
+
+	.fs-pattern {
+		display: block;
+		position: fixed;
+		inset: 0;
+		z-index: -1;
+		pointer-events: none;
+		opacity: var(--fs-pattern-strength);
+		background-color: var(--fs-text);
+		-webkit-mask-image: var(--fs-pattern-url);
+		mask-image: var(--fs-pattern-url);
+		-webkit-mask-repeat: repeat;
+		mask-repeat: repeat;
+		-webkit-mask-size: var(--fs-pattern-size) auto;
+		mask-size: var(--fs-pattern-size) auto;
+	}
+
+	/* Cards paint their own opaque --fs-panel, so no global wash is needed. */
+}

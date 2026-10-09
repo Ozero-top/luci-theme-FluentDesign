@@ -1,53 +1,88 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-layout="top" data-darkmode="true" data-theme="dark" data-bs-theme="dark">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>FD shell harness</title>
+<link rel="icon" href="/luci-static/fluentdesign/logo_48.png" sizes="48x48">
+<link rel="icon" type="image/svg+xml" href="/luci-static/fluentdesign/logo.svg" sizes="any">
+<link rel="manifest" href="/luci-static/fluentdesign/manifest.json">
 <link rel="stylesheet" href="/luci-static/fluentdesign/css/cascade.css">
-<link rel="stylesheet" href="/luci-static/fluentdesign/css/dark.css" media="(prefers-color-scheme: dark)">
 <style>
-	/* mirror the personalization <style> block injected by header.ut */
-	:root { --primary:#0078d4; --font-scale:1; --acrylic-blur:30px; --acrylic-opacity:0.7; }
-	#harness-report { position: fixed; top: 8px; right: 8px; width: 320px;
+	/* Fixed report overlay; pointer-events:none so it never steals the
+	 * outside-click / rect measurements the checks perform. */
+	#harness-report { position: fixed; top: 8px; right: 8px; width: 300px;
 		max-height: 90vh; overflow: auto; font: 12px/1.5 monospace; z-index: 99999;
-		background: #111; color: #9f9; padding: 10px; border-radius: 8px; }
+		background: #111; color: #9f9; padding: 10px; border-radius: 8px;
+		pointer-events: none; }
 	#harness-report .fail { color: #ff7676; }
 	#harness-report h4 { color: #fff; margin: 0 0 6px; }
-	.fd-tall-card { background:#fff; border:1px solid #ddd; border-radius:8px;
-		padding:1rem; margin-bottom:1rem; }
 </style>
 </head>
-<body class="logged-in" data-page="admin-system-fluentdesign">
-<div class="main">
-	<div class="main-left" id="mainmenu" style="display:none">
-		<div class="sidenav-header">
-			<a class="brand" href="/"><span class="brand-text">iStoreOS</span></a>
+<body class="lang_zh-cn logged-in" data-page="admin-system-admin">
+
+<!-- Mirror of header.ut/footer.ut chrome markup (v2 top bar). -->
+<div class="fs-pattern" data-fs-chrome aria-hidden="true"></div>
+<a class="fs-skip" data-fs-chrome href="#maincontent">跳到主要内容</a>
+
+<div class="fs-shell">
+	<nav class="fs-sidebar" data-fs-chrome aria-label="菜单">
+		<div class="fs-brandrow">
+			<a class="fs-brand" href="/cgi-bin/luci/">
+				<span class="fs-logo">
+					<svg aria-hidden="true" viewBox="-9 -1 100 100"><path d="m40.5 50.8a6.6 6.6 0 1 0 0 13.2 6.6 6.6 0 0 0 0-13.2m-40.5-33.9 7 6.8a47.5 47.5 0 0 1 67.2 0l7-6.8a57.2 57.2 0 0 0-81.2 0" fill="#00b5e2"/><path d="m12.5 29.2 6.8 7a30 30 0 0 1 42.6 0l6.8-7a39.7 39.7 0 0 0-56.3 0" fill="#00b5e2"/><path d="m24.8 41.6 6.8 6.9a12.6 12.6 0 0 1 18 0l6.8-6.9a22.3 22.3 0 0 0-31.6 0" fill="#00b5e2"/><path class="fs-logo-ring" d="m64.9 39.7a30.2 30.2 0 1 1-48.7 0l-6.9-7a39.9 39.9 0 1 0 62.5 0z"/></svg>
+				</span>
+				<span class="fs-wordmark">iStoreOS</span>
+			</a>
 		</div>
-	</div>
-	<div class="main-right">
-		<header class="app-header">
-			<div class="fill"><div class="container">
-				<div class="flex1">
-					<button type="button" class="showSide" aria-controls="mainmenu" aria-expanded="false">x</button>
-					<a class="brand" href="/">iStoreOS</a>
+
+		<div id="indicators" class="fs-indicators"></div>
+
+		<ul class="nav" id="topmenu"></ul>
+		<ul id="modemenu" class="fs-modemenu"></ul>
+
+		<a class="fs-logout" href="/cgi-bin/luci/admin/logout" title="退出" aria-label="退出">
+			<svg class="fs-ico" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"/><path d="M14 12h7m0 0-3-3m3 3-3 3"/></svg>
+			<span class="fs-label">退出</span>
+		</a>
+	</nav>
+
+	<main class="fs-main" id="maincontent" tabindex="-1">
+		<div class="fs-title fs-sr" data-fs-chrome>
+			<h1 class="fs-title-main">iStoreOS</h1>
+		</div>
+
+		<div class="fs-content" data-page="admin-system-admin">
+			<div id="tabmenu" style="display:none"></div>
+
+			<!-- stock LuCI CBI markup, for visual comparison -->
+			<div class="cbi-map">
+				<h2 name="content">管理权</h2>
+				<div class="cbi-section"><div class="cbi-section-node">
+					<div class="cbi-value">
+						<label class="cbi-value-title">主机名</label>
+						<div class="cbi-value-field"><input class="cbi-input-text" type="text" value="iStoreOS"></div>
+					</div>
+					<div class="cbi-value cbi-value-last">
+						<label class="cbi-value-title">模式</label>
+						<div class="cbi-value-field">
+							<select class="cbi-input-select"><option>网关</option><option>AP</option></select>
+						</div>
+					</div>
+				</div></div>
+				<div class="cbi-page-actions">
+					<button type="button" class="btn cbi-button cbi-button-apply">保存并应用</button>
+					<button type="button" class="btn cbi-button">重置</button>
 				</div>
-				<div class="status" id="indicators"></div>
-			</div></div>
-		</header>
-		<div class="darkMask"></div>
-		<div id="maincontent">
-			<div class="container">
-				<div id="tabmenu" style="display:none"></div>
-				<div id="view"></div>
 			</div>
 		</div>
-		<footer class="mobile-hide">
-			<div class="footer-content">
-				<ul class="breadcrumb" id="modemenu" style="display:none"></ul>
-			</div>
+
+		<footer class="fs-footer" role="contentinfo">
+			<span>Powered by LuCI / OpenWrt 24.10</span>
 		</footer>
-	</div>
+	</main>
 </div>
+
 <div id="harness-report"><h4>shell</h4><div id="harness-log"></div></div>
 
 <script>window.TR = {};</script>
@@ -56,7 +91,7 @@
 <script>
 'use strict';
 sessionStorage.setItem('luci-session-store', JSON.stringify({
-	'00000000000000000000000000000000': { features: {}, preload: [], rpcBaseURL: '/ubus/' }
+	'0000000000000000000000000000000': { features: {}, preload: [], rpcBaseURL: '/ubus/' }
 }));
 window.L = new LuCI({
 	scriptname: '/cgi-bin/luci',
@@ -77,6 +112,8 @@ window.L = new LuCI({
 		d.textContent = (cond ? 'PASS ' : 'FAIL ') + name + (extra !== undefined ? '  [' + extra + ']' : '');
 		log.appendChild(d);
 	}
+	const wait = (ms) => new Promise(r => setTimeout(r, ms));
+	const waitFrame = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
 	const request = await L.require('request');
 	request.post = function() {
@@ -86,151 +123,258 @@ window.L = new LuCI({
 
 	const ui = await L.require('ui');
 
-	/* ---- mock menu tree: mirrors iStoreOS (many submenu entries) ---- */
+	/* ---- mock menu tree (Chinese zh-CN firmware shape) ---- */
 	function node(name, title, children) {
 		return { name, title, children: children || {}, sortOrder: 0, satisfied: true };
 	}
-	// Localized (Chinese) titles as shipped by iStoreOS/OpenWrt zh builds:
-	// icon masks are keyed by the English data-title, so this exercises the
-	// fallback path that real localized firmware hits.
+	// Many System children, as iStoreOS/OpenWrt zh builds ship.
 	const sysChildren = {};
-	['系统','快速设置向导','管理权','启动项','计划任务','挂载点','分区扩容',
+	['快速设置向导','管理权','启动项','计划任务','挂载点','分区扩容',
 	 '磁盘管理','系统控制','进阶设置','内核参数','备份与更新','文件','释放内存',
-	 'Argon 主题设置','重启','关机','FluentDesign 主题设置'].forEach(function(t, i) {
+	 '重启','关机'].forEach(function(t, i) {
 		sysChildren['c' + i] = node('c' + i, t);
 	});
-	// Real LuCI tree: top level = modes ("admin" ...), the sidebar is the
-	// active mode's children.
+	// The dispatch leaf 管理权 carries section tabs.
+	sysChildren.admin = node('admin', '管理权', {
+		password: node('password', '密码设置'),
+		sshkeys: node('sshkeys', 'SSH-Keys')
+	});
 	const admin = node('admin', 'Administration', {
 		home: node('home', '首页'),
 		status: node('status', '状态', {
 			overview: node('overview', '概览')
 		}),
 		system: node('system', '系统', sysChildren),
-		opkg: node('opkg', '软件包'),
 		services: node('services', '服务', {
-			s1: node('s1', '服务一')
+			s1: node('s1', '服务一'), s2: node('s2', '服务二')
 		}),
 		network: node('network', '网络', {
 			n1: node('n1', '接口')
+		}),
+		wireguard: node('wireguard', 'VPN 隧道', {
+			wg1: node('wg1', 'WireGuard 实例')
 		}),
 		customapp: node('customapp', '第三方插件'),
 		logout: node('logout', '退出')
 	});
 	const tree = node('root', 'root', { admin });
 	ui.menu.load = function() { return Promise.resolve(tree); };
-	/* header.ut-driven pages always carry these; the standalone harness
-	 * does not go through the dispatcher, so provide empty paths. */
-	L.env.dispatchpath = L.env.dispatchpath || [];
-	L.env.requestpath = L.env.requestpath || [];
 
-	/* fill the content area with a tall view ending in a save bar */
-	const view = document.getElementById('view');
-	let html = '<h2>FluentDesign 主题设置</h2>';
-	for (let i = 0; i < 14; i++)
-		html += '<div class="fd-tall-card" style="height:90px">card ' + i + '</div>';
-	html += '<div class="cbi-page-actions" id="savebar" style="height:52px">save bar</div>';
-	view.innerHTML = html;
+	// Dispatch path = admin / system / admin(管理权) / password(tab)
+	L.env.dispatchpath = ['admin', 'system', 'admin', 'password'];
+	L.env.requestpath = ['admin'];
 
 	/* boot the real theme menu module */
 	await L.require('menu-fluentdesign');
-	for (let i = 0; i < 50 && !document.querySelector('#mainmenu .nav'); i++)
-		await new Promise(r => setTimeout(r, 100));
-	await new Promise(r => setTimeout(r, 200));
+	for (let i = 0; i < 50 && !document.querySelector('#topmenu > li'); i++)
+		await wait(50);
+	await wait(100);
 
-	/* ============ menu structure ============ */
-	const nav = document.querySelector('#mainmenu .nav');
-	check('nav rendered', !!nav);
-	const subLinks = Array.from(document.querySelectorAll('#mainmenu .slide-menu li a'));
-	check('submenu links present', subLinks.length >= 10, subLinks.length);
-	const badClass = subLinks.filter(a => /\b(menu|food)\b/.test(a.className));
-	check('submenu links carry no .menu/.food', badClass.length === 0,
-		badClass.map(a => a.className + ':' + a.textContent).join('; '));
+	const isDesktop = window.innerWidth >= 900;
+	const rootEl = document.documentElement;
+	const topPill = (name) => document.querySelector('#topmenu > li[data-name="' + name + '"] > a');
+	const panelOf = (name) => document.querySelector('#topmenu > li[data-name="' + name + '"] > ul');
 
-	/* leading-icon ::before must exist on top level, never on submenu */
-	function maskOf(el) {
-		const s = getComputedStyle(el, '::before');
-		return (s.maskImage || '') + '|' + (s.webkitMaskImage || '');
-	}
-	const subBefore = subLinks.map(maskOf);
-	check('submenu ::before has no mask', subBefore.every(m => /^none\|none$|^\|$/.test(m)),
-		subBefore.slice(0, 3).join(' ; '));
-	const sysTop = Array.from(document.querySelectorAll('#mainmenu .nav > li > a.menu'))
-		.find(a => a.textContent.trim() === '系统');
-	check('top-level group rendered', !!sysTop);
-	if (sysTop) {
-		const topMask = maskOf(sysTop);
-		check('top-level ::before has icon mask', /svg|data:/.test(topMask), topMask.slice(0, 80));
-		/* expand the System group */
-		sysTop.click();
-		await new Promise(r => setTimeout(r, 260));
-		const ul = sysTop.nextElementSibling;
-		check('submenu expands', ul && ul.classList.contains('active') &&
-			ul.getBoundingClientRect().height > 50, ul && ul.getBoundingClientRect().height);
-	}
+	/* ============ dark tokens / pattern ============ */
+	const css = getComputedStyle(rootEl);
+	check('html is fixed top layout', rootEl.getAttribute('data-layout') === 'top');
+	check('html forced dark', rootEl.getAttribute('data-darkmode') === 'true' &&
+		rootEl.getAttribute('data-bs-theme') === 'dark');
+	check('--fs-bg is charcoal #1c2128',
+		css.getPropertyValue('--fs-bg').trim() === '#1c2128',
+		css.getPropertyValue('--fs-bg').trim());
+	/* The opaque canvas colour lives on <html>; body/.fs-main/footer must stay
+	 * transparent so the z-index:-1 pattern layer is not covered. */
+	const rootBg = getComputedStyle(document.documentElement).backgroundColor;
+	check('html canvas painted charcoal', rootBg === 'rgb(28, 33, 40)', rootBg);
+	const transparentEls = [document.body, document.querySelector('.fs-main'),
+		document.querySelector('footer.fs-footer')];
+	check('body/.fs-main/footer transparent for the pattern',
+		transparentEls.every(el => {
+			const bg = getComputedStyle(el).backgroundColor;
+			return bg === 'rgba(0, 0, 0, 0)' || bg === 'transparent';
+		}), transparentEls.map(el => getComputedStyle(el).backgroundColor).join(' | '));
 
-	/* submenu labels must not be overlapped by an icon box: sample a link
-	 * from the expanded System <ul> (collapsed lists have zero rects). */
-	const expandedUl = sysTop && sysTop.nextElementSibling;
-	const sample = expandedUl && expandedUl.querySelector('li a');
-	if (sample) {
-		const r = sample.getBoundingClientRect();
-		const liR = sample.closest('li').getBoundingClientRect();
-		check('submenu text inside its li', r.left >= liR.left - 1 && r.right <= liR.right + 1,
-			'text ' + Math.round(r.left) + '-' + Math.round(r.right) + ' li ' + Math.round(liR.left) + '-' + Math.round(liR.right));
-	}
+	const pattern = document.querySelector('.fs-pattern');
+	const mask = pattern && (getComputedStyle(pattern).maskImage ||
+		getComputedStyle(pattern).webkitMaskImage || '');
+	check('cat pattern layer masked with cats.svg', !!pattern && mask.includes('cats.svg'),
+		mask.slice(0, 90));
 
-	/* Icons keyed by stable node name must appear even with Chinese titles;
-	 * unmapped entries fall back to an empty mask (no drawable shape),
-	 * never a solid dot. */
-	function hasShape(mask) { return /circle|path|rect|ellipse|polygon/i.test(mask || ''); }
-	const expectedIcons = {
-		'首页': 'home', '状态': 'status', '系统': 'system', '服务': 'services',
-		'网络': 'network', '软件包': 'opkg', '退出': 'logout'
-	};
-	Object.keys(expectedIcons).forEach(function(label) {
-		const a = Array.from(document.querySelectorAll('#mainmenu .nav > li > a'))
-			.find(x => x.textContent.trim() === label);
-		check('mapped icon for “' + label + '” (' + expectedIcons[label] + ')',
-			!!a && a.getAttribute('data-nav') === expectedIcons[label] &&
-			hasShape(maskOf(a)), a && a.getAttribute('data-nav'));
+	check('skip link present', !!document.querySelector('a.fs-skip[href="#maincontent"]'));
+	check('sr-only h1 clipped', /inset/.test(getComputedStyle(document.querySelector('.fs-title')).clipPath));
+	check('footer present', /Powered by/.test(document.querySelector('.fs-footer').textContent));
+	check('old settings entry removed from the menu',
+		document.getElementById('topmenu').textContent.indexOf('FluentDesign 主题设置') === -1);
+
+	/* ============ mode menu / tabs ============ */
+	const modemenu = document.getElementById('modemenu');
+	check('modemenu renders the one mode', modemenu.querySelectorAll('li').length === 1);
+	check('single modemenu hidden', modemenu.classList.contains('single') &&
+		getComputedStyle(modemenu).display === 'none', getComputedStyle(modemenu).display);
+
+	const tabItems = document.querySelectorAll('#tabmenu ul.tabs > li');
+	check('section tabs rendered', tabItems.length === 2, tabItems.length);
+	check('active tab follows dispatchpath',
+		!!document.querySelector('#tabmenu .tabmenu-item-password.active') &&
+		!tabItems[1].classList.contains('active'));
+	check('#tabmenu shown', document.getElementById('tabmenu').style.display !== 'none');
+
+	/* ============ pill markup / icons ============ */
+	const pills = Array.from(document.querySelectorAll('#topmenu > li'));
+	check('pills rendered for all sections but logout', pills.length === 7, pills.length);
+	check('tree logout skipped in topmenu',
+		!Array.from(document.querySelectorAll('#topmenu a')).some(a => /\/logout$/.test(a.href)));
+	check('bar logout control present',
+		/\/admin\/logout$/.test(document.querySelector('a.fs-logout').href));
+
+	['home', 'status', 'system', 'services', 'network', 'wireguard', 'customapp'].forEach(function(n) {
+		check('pill li[data-name="' + n + '"] exists',
+			!!document.querySelector('#topmenu > li[data-name="' + n + '"]'));
 	});
-	const unmapped = Array.from(document.querySelectorAll('#mainmenu .nav > li > a'))
-		.find(x => x.textContent.trim() === '第三方插件');
-	check('unmapped entry renders no dot/icon', !!unmapped && !hasShape(maskOf(unmapped)),
-		unmapped && maskOf(unmapped).slice(0, 60));
 
-	/* ============ height chain / scrolling ============ */
-	const vh = window.innerHeight;
-	const ml = document.querySelector('#mainmenu');
-	const mr = document.querySelector('.main-right');
+	/* icons keyed by stable node name, independent of Chinese titles */
+	const iconBody = (name) => {
+		const svg = topPill(name).querySelector('svg.fs-ico');
+		return svg ? svg.innerHTML : null;
+	};
+	check('status icon body', /<rect /.test(iconBody('status')));
+	check('system icon body', iconBody('system').indexOf('M9 2v3') !== -1);
+	check('network icon body', iconBody('network').indexOf('cx="6" cy="18"') !== -1);
+	check('wireguard node falls back to vpn icon', iconBody('wireguard').indexOf('<rect x="4" y="10"') === 0);
+	check('unknown node falls back to default circle',
+		/^<circle cx="12" cy="12" r="8\.5"(\/>|><\/circle>)$/.test(iconBody('customapp')));
 
-	/* Desktop sidebar must use the configurable acrylic material. */
-	const sideBg = getComputedStyle(ml).backgroundColor;
-	const sideFilter = getComputedStyle(ml).backdropFilter || getComputedStyle(ml).webkitBackdropFilter;
-	check('sidebar is translucent acrylic', /rgba/.test(sideBg) && /blur/.test(sideFilter || ''),
-		sideBg + ' / ' + sideFilter);
+	/* bar pills are text-only: the CSS hides icon and chevron */
+	check('pill icons hidden in bar',
+		getComputedStyle(topPill('status').querySelector('.fs-ico')).display === 'none');
+	const sysTrigger = topPill('system');
+	check('system chevron exists but hidden in bar',
+		!!sysTrigger.querySelector('.fs-chevron') &&
+		getComputedStyle(sysTrigger.querySelector('.fs-chevron')).display === 'none');
 
-	check('html fills viewport', document.documentElement.clientHeight === vh);
-	check('sidebar fills viewport height', Math.abs(ml.getBoundingClientRect().height - vh) <= 1,
-		Math.round(ml.getBoundingClientRect().height) + ' vs ' + vh);
-	check('content column fills viewport height', Math.abs(mr.getBoundingClientRect().height - vh) <= 1,
-		Math.round(mr.getBoundingClientRect().height) + ' vs ' + vh);
-	check('document itself does not scroll',
-		document.documentElement.scrollHeight <= vh + 1 && document.body.scrollHeight <= vh + 1,
-		'doc ' + document.documentElement.scrollHeight + ' body ' + document.body.scrollHeight);
-	check('content column is the scroll container', mr.scrollHeight > mr.clientHeight + 20,
-		'scroll ' + mr.scrollHeight + ' client ' + mr.clientHeight);
+	/* active section: ink on the disclosure <a>, plate on the <li> only */
+	check('system section is active',
+		document.querySelector('#topmenu > li[data-name="system"].active') &&
+		!sysTrigger.classList.contains('active'));
+	check('active leaf inside dropdown', (function() {
+		const a = document.querySelector('#topmenu > li[data-name="system"] li a.active');
+		return !!a && /\/system\/admin$/.test(a.href) && a.textContent.trim() === '管理权';
+	})());
 
-	mr.scrollTop = mr.scrollHeight;
-	await new Promise(r => setTimeout(r, 100));
-	check('content scrolls', mr.scrollTop > 0, 'scrollTop=' + mr.scrollTop);
-	const bar = document.getElementById('savebar');
-	const br = bar.getBoundingClientRect();
-	check('save bar reachable at bottom',
-		br.top >= 0 && br.bottom <= vh + 1 && br.bottom >= mr.getBoundingClientRect().top,
-		'bottom=' + Math.round(br.bottom));
-	mr.scrollTop = 0;
+	/* leaf pill is a plain link, not a disclosure button */
+	const homeA = topPill('home');
+	check('leaf pill is a plain link',
+		!homeA.hasAttribute('role') && !homeA.hasAttribute('aria-expanded') &&
+		/\/admin\/home$/.test(homeA.href));
+
+	/* ============ dropdown disclosure ============ */
+	const sysPanel = panelOf('system');
+	check('system is a disclosure',
+		sysTrigger.getAttribute('role') === 'button' &&
+		sysTrigger.getAttribute('aria-expanded') === 'false' &&
+		sysTrigger.getAttribute('aria-controls') === sysPanel.id);
+	check('panel hidden initially', getComputedStyle(sysPanel).display === 'none');
+
+	sysTrigger.click();
+	await waitFrame(); await wait(60);
+	check('tap opens the panel',
+		sysTrigger.closest('li').classList.contains('open') &&
+		sysTrigger.getAttribute('aria-expanded') === 'true' &&
+		getComputedStyle(sysPanel).display === 'block');
+	const subLinks = sysPanel.querySelectorAll('li a');
+	check('panel lists the system entries', subLinks.length >= 15, subLinks.length);
+	check('panel links carry no icons',
+		!Array.from(subLinks).some(a => a.querySelector('svg.fs-ico')));
+	const sample = subLinks[0].getBoundingClientRect();
+	const panelR = sysPanel.getBoundingClientRect();
+	check('panel link text inside panel',
+		sample.left >= panelR.left - 1 && sample.right <= panelR.right + 1);
+
+	/* exclusivity: opening another section closes the first */
+	const srvTrigger = topPill('services');
+	srvTrigger.click();
+	await waitFrame(); await wait(60);
+	check('opening another panel closes the first',
+		!sysTrigger.closest('li').classList.contains('open') &&
+		srvTrigger.closest('li').classList.contains('open'));
+
+	/* Escape closes and restores focus */
+	sysTrigger.click();
+	await waitFrame(); await wait(60);
+	document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+	check('Escape closes panel and focuses trigger',
+		!sysTrigger.closest('li').classList.contains('open') &&
+		document.activeElement === sysTrigger);
+
+	/* outside click closes */
+	sysTrigger.click();
+	await waitFrame(); await wait(60);
+	document.querySelector('.fs-content').click();
+	check('outside click closes panel',
+		!sysTrigger.closest('li').classList.contains('open'));
+
+	/* edge clamp: every open panel must stay inside the viewport */
+	const hasSubNames = ['system', 'services', 'network', 'wireguard'];
+	hasSubNames.forEach(function(n) {
+		if (!isDesktop && n !== 'system') return;
+		const t = topPill(n), p = panelOf(n);
+		t.click();
+	});
+	await waitFrame(); await wait(100);
+	const openPanels = Array.from(document.querySelectorAll('#topmenu > li.has-sub.open > ul'));
+	openPanels.forEach(function(p) {
+		const r = p.getBoundingClientRect();
+		check('clamped panel (' + r.width + 'px) inside viewport',
+			r.right <= window.innerWidth - 8 + 1 && r.left >= 8 - 1,
+			'right=' + Math.round(r.right) + ' vw=' + window.innerWidth);
+	});
+	/* tidy up */
+	document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+	document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+	await wait(60);
+
+	/* ============ bar geometry ============ */
+	const bar = document.querySelector('.fs-sidebar');
+	const nav = document.getElementById('topmenu');
+	const brand = document.querySelector('.fs-brand');
+	const logout = document.querySelector('.fs-logout');
+	const barR = bar.getBoundingClientRect();
+	const navR = nav.getBoundingClientRect();
+	const brandR = brand.getBoundingClientRect();
+	const logoutR = logout.getBoundingClientRect();
+
+	check('bar is a sticky top flex row',
+		getComputedStyle(bar).position === 'sticky' &&
+		getComputedStyle(bar).flexDirection === 'row');
+
+	if (isDesktop) {
+		check('brand and menu share one row',
+			Math.abs(navR.top - brandR.top) < 12,
+			'nav ' + Math.round(navR.top) + ' brand ' + Math.round(brandR.top));
+		check('menu spans the bar free space',
+			navR.right > window.innerWidth - 120, Math.round(navR.right));
+		check('logout sits at the far edge',
+			logoutR.right > window.innerWidth - 40, Math.round(logoutR.right));
+		check('bar stays a single row',
+			barR.height <= 70, Math.round(barR.height));
+	} else {
+		check('menu wraps below the brand row',
+			navR.top >= brandR.bottom - 1,
+			'nav ' + Math.round(navR.top) + ' brand-b ' + Math.round(brandR.bottom));
+		check('menu strip spans the bar width',
+			navR.right >= window.innerWidth - 24 && navR.left <= 24,
+			Math.round(navR.left) + '-' + Math.round(navR.right));
+		check('menu strip scrolls horizontally',
+			nav.scrollWidth > nav.clientWidth + 2,
+			nav.scrollWidth + '>' + nav.clientWidth);
+		check('strip overflow-x auto with hidden scrollbar',
+			getComputedStyle(nav).overflowX === 'auto' &&
+			getComputedStyle(nav).scrollbarWidth === 'none');
+		check('logout stays on the brand row',
+			logoutR.top < navR.top && logoutR.bottom <= brandR.bottom + 24,
+			'logout ' + Math.round(logoutR.top) + '-' + Math.round(logoutR.bottom));
+	}
 
 	const failed = results.filter(r => !r.ok).length;
 	const h = document.createElement('h4');

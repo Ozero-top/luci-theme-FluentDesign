@@ -1,6 +1,6 @@
 #!/bin/sh
 # Assemble a static site tree combining the *real* LuCI core JS from a given
-# openwrt/luci branch with this theme's settings view, styles and the browser
+# openwrt/luci branch with this theme's menu renderer, styles and the browser
 # harness. The assembled tree is what run-browser-tests.mjs drives.
 #
 # usage: assemble-site.sh <luci-branch> <dest-dir>
@@ -13,8 +13,8 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 RAW="https://raw.githubusercontent.com/openwrt/luci/${BRANCH}/modules/luci-base/htdocs/luci-static/resources"
 
 RES="$DEST/luci-static/resources"
-THEME="$DEST/luci-static/fluentdesign/css"
-mkdir -p "$RES/view/system" "$THEME" "$RES/icons"
+MEDIA="$DEST/luci-static/fluentdesign"
+mkdir -p "$RES/icons" "$MEDIA/css" "$MEDIA/pattern"
 
 # Core runtime files as served by luci-base (jsmin-minified in real builds,
 # the unminified branch sources behave identically for API purposes).
@@ -28,13 +28,14 @@ curl -fsSL --retry 3 "$RAW/baseclass.js" -o "$RES/baseclass.js" || rm -f "$RES/b
 # Static asset placeholders (spinner etc.) so startup emits no 404 noise.
 cp "$REPO_ROOT/tests/harness/assets/icons/loading.svg" "$RES/icons/"
 
-# Theme view + assets under test.
-cp "$REPO_ROOT/htdocs/luci-static/resources/view/system/fluentdesign.js"  "$RES/view/system/"
-cp "$REPO_ROOT/htdocs/luci-static/resources/view/system/fluentdesign.css" "$RES/view/system/"
+# Theme menu renderer, stylesheet and media under test.
 cp "$REPO_ROOT/htdocs/luci-static/resources/menu-fluentdesign.js" "$RES/"
-cp "$REPO_ROOT/htdocs/luci-static/fluentdesign/css/cascade.css" "$THEME/"
-cp "$REPO_ROOT/htdocs/luci-static/fluentdesign/css/dark.css"     "$THEME/"
-cp "$REPO_ROOT/tests/harness/index.html" "$DEST/index.html"
+cp "$REPO_ROOT/htdocs/luci-static/fluentdesign/css/cascade.css" "$MEDIA/css/"
+cp "$REPO_ROOT/htdocs/luci-static/fluentdesign/pattern/cats.svg" "$MEDIA/pattern/"
+cp "$REPO_ROOT/htdocs/luci-static/fluentdesign/logo.svg" "$MEDIA/"
+cp "$REPO_ROOT/htdocs/luci-static/fluentdesign/logo_48.png" "$MEDIA/"
+cp "$REPO_ROOT/htdocs/luci-static/fluentdesign/app-icon-192.png" "$MEDIA/"
+cp "$REPO_ROOT/htdocs/luci-static/fluentdesign/manifest.json" "$MEDIA/"
 cp "$REPO_ROOT/tests/harness/shell.html" "$DEST/shell.html"
 
 echo "assembled site for luci branch '$BRANCH' at $DEST"

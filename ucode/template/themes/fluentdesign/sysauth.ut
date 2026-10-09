@@ -1,186 +1,92 @@
 {#
-	luci-theme-FluentDesign
-	Fluent Design login page. Local backgrounds only (images / videos placed
-	under /www/luci-static/fluentdesign/background are picked at random);
-	there is no online wallpaper fetch, so no rpcd / wget dependency is needed.
+	luci-theme-FluentDesign v2
 
-	Licensed to the public under the Apache License 2.0.
+	Login page: dark centered card (.fs-login, styles/pages/10-login.css),
+	vendored markup from luci-theme-footstrap (Apache-2.0). Renders through
+	header.ut/footer.ut with blank_page=true, so no shell chrome surrounds
+	the form. The server renders the form itself: the view layer boots
+	before a session exists and its RPCs are denied, so nothing here may
+	depend on JS.
+
+	Every field the backend can post must stay — auth_fields/auth_html/
+	auth_assets are the pluggable-auth (2FA) superset; dropping one locks
+	those routers out while this theme is active.
 -#}
 
-{% include("themes/" + theme + "/out_header_login") %}
 {%
-	import * as fs from 'fs';
-
-	// Per-request pseudo-random state for selecting local backgrounds.
-	let lcgState = time() % 2147483648;
-
-	function randomIndex(limit) {
-		lcgState = (lcgState * 1103515245 + 12345) % 2147483648;
-		return lcgState % limit;
-	}
-
-	const imageTypes = " jpg jpeg png gif webp ";
-	const videoTypes = " mp4 webm ";
-	const allTypes = imageTypes + videoTypes;
-
-	function fetchMedia(path, themeDir) {
-		let backgroundTable = [];
-		for (f in (fs.lsdir(path) ?? [])) {
-			let parts = split(f, '.');
-			let ext = lc(parts?.[length(parts) - 1]);
-			if (ext && index(allTypes, " " + ext + " ") != -1) {
-				let bg = {};
-				bg.type = ext;
-				bg.url = themeDir + http.urlencode(f);
-				push(backgroundTable, bg);
-			}
-		}
-		return backgroundTable;
-	}
-
-	const boardinfo = ubus.call("system", "board");
-	const hostname = striptags(boardinfo?.hostname ?? '?');
-	const themeDir = media + "/background/";
-
-	let bgUrl = media + "/img/login-bg.svg";
-	let backgroundType = "Image";
-	let mimeType = "";
-
-	let background = fetchMedia("/www" + themeDir, themeDir);
-	if (length(background) > 0) {
-		let currentBg = background[randomIndex(length(background))];
-		bgUrl = currentBg.url;
-		if (index(videoTypes, " " + currentBg.type + " ") != -1) {
-			backgroundType = "Video";
-			mimeType = "video/" + currentBg.type;
-		}
-	}
+	const boardinfo = ubus.call('system', 'board') ?? {};
 %}
-<!-- Login Page -->
-<div class="login-page">
-	{% if (backgroundType == "Video"): %}
-	<div class="video">
-		<video loop muted playsinline id="video" poster="{{ media }}/img/login-bg.svg">
-			<source src="{{ entityencode(bgUrl, true) }}" type="{{ mimeType }}">
-		</video>
+
+{% include('header', { blank_page: true }) %}
+
+<form method="post" class="fs-login">
+	<p class="fs-login-host">{{ entityencode(striptags(boardinfo.hostname ?? 'OpenWrt'), true) }}</p>
+
+	{% if (fuser && !auth_plugin): %}
+	<div class="alert-message error">
+		<p>{{ _('Invalid username and/or password! Please try again.') }}</p>
 	</div>
-	<button type="button" class="volume-control mute" aria-label="{{ entityencode(_('Mute background video'), true) }}" aria-pressed="true"></button>
-	<script>
-		var backgroundVideo = document.getElementById("video");
-		var motionPreference = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
-		function updateBackgroundMotion() {
-			if (motionPreference && motionPreference.matches)
-				backgroundVideo.pause();
-			else {
-				var playResult = backgroundVideo.play();
-				if (playResult && playResult.catch)
-					playResult.catch(function() {});
-			}
-		}
-		updateBackgroundMotion();
-		if (motionPreference) {
-			if (motionPreference.addEventListener)
-				motionPreference.addEventListener('change', updateBackgroundMotion);
-			else if (motionPreference.addListener)
-				motionPreference.addListener(updateBackgroundMotion);
-		}
-		document.querySelector(".volume-control").addEventListener("click", function() {
-			if (this.classList.contains("mute")) {
-				this.classList.remove("mute");
-				backgroundVideo.muted = false;
-				this.setAttribute('aria-pressed', 'false');
-			} else {
-				this.classList.add("mute");
-				backgroundVideo.muted = true;
-				this.setAttribute('aria-pressed', 'true');
-			}
-		});
-	</script>
-	{% else %}
-	<div class="main-bg" id="main-bg">
-		<img src="{{ entityencode(bgUrl, true) }}" data-fallback="{{ media }}/img/login-bg.svg" onerror="this.onerror=null;this.src=this.dataset.fallback" alt="">
+	{% endif %}
+	{% if (auth_message): %}
+	<div class="alert-message{% if (auth_plugin): %} warning{% endif %}">
+		<p>{{ entityencode(auth_message, true) }}</p>
 	</div>
 	{% endif %}
 
-	<div class="login-container">
-		<div class="login-form">
-			<a class="brand" href="/">
-				<img src="{{ media }}/img/logo.svg" class="brand-logo" alt="">
-				<span class="brand-text">{{ hostname }}</span>
-			</a>
-
-			<form class="form-login" method="post" action="{{ entityencode(http.getenv("REQUEST_URI"), true) }}">
-
-				{%- if (fuser && !auth_plugin): %}
-				<div class="errorbox" role="alert">{{ _('Invalid username and/or password! Please try again.') }}</div>
-				{% endif -%}
-
-				{%- if (auth_message): %}
-				<div class="errorbox" role="alert">{{ auth_message }}</div>
-				{% endif -%}
-
-				<div class="input-container">
-					<div class="input-group user-icon">
-						<span class="input-icon" aria-hidden="true">
-							<svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-								<circle cx="10" cy="7" r="3.2" stroke="currentColor" stroke-width="1.5"/>
-								<path d="M3.5 16.5c.6-3 3.4-4.5 6.5-4.5s5.9 1.5 6.5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-							</svg>
-						</span>
-						<label class="visually-hidden" for="cbi-input-user">{{ _('Username') }}</label>
-						<input class="cbi-input-user" id="cbi-input-user" type="text" name="luci_username" value="{{ entityencode(duser, true) }}" autocomplete="username" placeholder="{{ entityencode(_('Username'), true) }}">
-						<span class="border" aria-hidden="true"></span>
-					</div>
-					<div class="input-group pass-icon">
-						<span class="input-icon" aria-hidden="true">
-							<svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-								<rect x="4" y="8.5" width="12" height="8" rx="1.6" stroke="currentColor" stroke-width="1.5"/>
-								<path d="M6.5 8.5V6.5a3.5 3.5 0 0 1 7 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-							</svg>
-						</span>
-						<label class="visually-hidden" for="cbi-input-password">{{ _('Password') }}</label>
-						<input class="cbi-input-password" id="cbi-input-password" type="password" name="luci_password" autocomplete="current-password" placeholder="{{ entityencode(_('Password'), true) }}">
-						<span class="border" aria-hidden="true"></span>
-					</div>
-					{%- if (auth_fields): %}
-					{%- for (let field in auth_fields): %}
-					<div class="input-group pass-icon">
-						<label class="visually-hidden" for="{{ entityencode(field.name, true) }}">{{ entityencode(_(field.label || field.name)) }}</label>
-						<input class="cbi-input-text" id="{{ entityencode(field.name, true) }}" type="{{ entityencode(field.type ?? 'text', true) }}" name="{{ entityencode(field.name, true) }}"
-							placeholder="{{ entityencode(_(field.label ?? field.placeholder ?? field.name), true) }}"
-							{% if (field.placeholder): %}title="{{ entityencode(field.placeholder, true) }}"{% endif %}
-							{% if (field.inputmode): %}inputmode="{{ entityencode(field.inputmode, true) }}"{% endif %}
-							{% if (field.pattern): %}pattern="{{ entityencode(field.pattern, true) }}"{% endif %}
-							{% if (field.maxlength): %}maxlength="{{ entityencode('' + field.maxlength, true) }}"{% endif %}
-							{% if (field.autocomplete): %}autocomplete="{{ entityencode(field.autocomplete, true) }}"{% endif %}
-							{% if (field.required): %}required{% endif %}>
-						<span class="border" aria-hidden="true"></span>
-					</div>
-					{%- endfor %}
-					{%- endif %}
+	<div class="cbi-map">
+		<h1 name="content">{{ _('Authorization Required') }}</h1>
+		<div class="cbi-map-descr">
+			{{ _('Please enter your username and password.') }}
+		</div>
+		<div class="cbi-section"><div class="cbi-section-node">
+			<div class="cbi-value">
+				<label class="cbi-value-title" for="luci_username">{{ _('Username') }}</label>
+				<div class="cbi-value-field">
+					<input class="cbi-input-text" type="text" name="luci_username" id="luci_username" autocomplete="username" value="{{ entityencode(duser, true) }}" />
 				</div>
-
-				{%- if (auth_html): %}
-				<div class="auth-plugin">{{ auth_html }}</div>
-				{% endif -%}
-
-				<div class="login-action">
-					<input type="submit" value="{{ _('Log in') }}" class="cbi-button cbi-button-apply fluent-login-button">
+			</div>
+			<div class="cbi-value cbi-value-last">
+				<label class="cbi-value-title" for="luci_password">{{ _('Password') }}</label>
+				<div class="cbi-value-field">
+					<input class="cbi-input-text" type="password" name="luci_password" id="luci_password" autocomplete="current-password" autofocus />
 				</div>
+			</div>
+			{% if (auth_fields): %}
+				{% for (let field in auth_fields): %}
+				<div class="cbi-value">
+					<label class="cbi-value-title" for="{{ entityencode(field.name, true) }}">{{ _(field.label ?? field.name) }}</label>
+					<div class="cbi-value-field">
+						<input class="cbi-input-text"
+							type="{{ field.type ?? 'text' }}"
+							name="{{ field.name }}"
+							id="{{ entityencode(field.name, true) }}"
+							{% if (field.placeholder): %} placeholder="{{ field.placeholder }}"{% endif %}
+							{% if (field.inputmode): %} inputmode="{{ field.inputmode }}"{% endif %}
+							{% if (field.pattern): %} pattern="{{ field.pattern }}"{% endif %}
+							{% if (field.maxlength): %} maxlength="{{ field.maxlength }}"{% endif %}
+							{% if (field.autocomplete): %} autocomplete="{{ field.autocomplete }}"{% endif %}
+							{% if (field.required): %} required{% endif %}
+						/>
+					</div>
+				</div>
+				{% endfor %}
+			{% endif %}
+			{% if (auth_html): %}
+				<div class="cbi-value">{{ auth_html }}</div>
+			{% endif %}
+			{% if (auth_assets): %}
+				{% for (let asset in auth_assets): %}
+					{% if (asset.type == 'script'): %}
+						<script src="{{ asset.src }}"></script>
+					{% endif %}
+				{% endfor %}
+			{% endif %}
+		</div></div>
+	</div>
 
-				{#- Loaded last so the markup a plugin emitted through `auth_html`
-				 is already in the document when its script runs. -#}
-				{%- if (auth_assets): %}
-				{%- for (let asset in auth_assets): %}
-				{%- if (asset.type == 'script'): %}
-				<script src="{{ asset.src }}"></script>
-				{%- endif %}
-				{%- endfor %}
-				{%- endif %}
-			</form>
-			<script type="text/javascript">//<![CDATA[
-				var input = document.getElementsByName('luci_password')[0];
-				if (input)
-					input.focus();
-			//]]></script>
-{% include("themes/" + theme + "/footer_login") %}
+	<div class="cbi-page-actions">
+		<input type="submit" value="{{ _('Log in') }}" class="btn cbi-button cbi-button-apply" />
+	</div>
+</form>
+
+{% include('footer', { blank_page: true }) %}

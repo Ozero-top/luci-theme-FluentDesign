@@ -1,9 +1,10 @@
 name: LuCI compatibility matrix
 
 # Loads the real luci-base core JS (cbi.js/luci.js/form.js/ui.js/uci.js ...)
-# from each maintained openwrt/luci branch and runs the theme settings-view
-# browser harness against it. A red stable-branch job means upstream changed
-# a contract this theme relies on and the code must adapt before release.
+# from each maintained openwrt/luci branch and runs the theme's top-bar
+# browser harness (1280px desktop + 390px wrapped bar) against it. A red
+# stable-branch job means upstream changed a contract this theme relies on
+# and the code must adapt before release.
 
 on:
   push:
@@ -11,9 +12,11 @@ on:
     paths:
       - '.github/workflows/luci-compat.yml'
       - 'tests/**'
-      - 'htdocs/luci-static/resources/view/system/**'
+      - 'build-css.mjs'
+      - 'styles/**'
+      - 'ucode/**'
+      - 'htdocs/luci-static/fluentdesign/**'
       - 'htdocs/luci-static/resources/menu-fluentdesign.js'
-      - 'htdocs/luci-static/fluentdesign/css/**'
   pull_request:
   workflow_dispatch:
   # Weekly upstream drift patrol: even with no pushes, re-run against the
@@ -26,8 +29,8 @@ permissions:
   contents: read
 
 jobs:
-  settings-view:
-    name: settings view on luci/${{ matrix.branch }}
+  shell:
+    name: top bar on luci/${{ matrix.branch }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -45,6 +48,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Build concatenated stylesheet
+        run: node build-css.mjs
+
       - name: Install Playwright and Chromium
         working-directory: tests
         run: |
@@ -58,20 +64,14 @@ jobs:
         run: |
           python3 tests/serve-harness.py site 8765 >/tmp/fd-http.log 2>&1 &
           for i in $(seq 1 40); do
-            curl -sf http://127.0.0.1:8765/index.html >/dev/null && exit 0
+            curl -sf http://127.0.0.1:8765/shell.html >/dev/null && exit 0
             sleep 0.5
           done
           echo 'harness server did not come up' >&2
           cat /tmp/fd-http.log >&2
           exit 1
 
-      - name: Run settings-view browser harness
-        run: >
-          node tests/run-browser-tests.mjs
-          http://127.0.0.1:8765/index.html
-          /tmp/fd-harness-${{ matrix.branch }}.png
-
-      - name: Run layout-shell browser harness
+      - name: Run top-bar browser harness (1280 + 390)
         run: >
           node tests/run-browser-tests.mjs
           http://127.0.0.1:8765/shell.html
@@ -81,8 +81,8 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: harness-${{ matrix.branch }}
+          name: shell-${{ matrix.branch }}
           path: |
-            /tmp/fd-harness-${{ matrix.branch }}.png
-            /tmp/fd-shell-${{ matrix.branch }}.png
+            /tmp/fd-shell-${{ matrix.branch }}-desktop.png
+            /tmp/fd-shell-${{ matrix.branch }}-narrow.png
           if-no-files-found: ignore
