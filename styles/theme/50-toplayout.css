@@ -19,11 +19,34 @@
 	:root[data-layout="top"] .fs-themerow,
 	:root[data-layout="top"] .fs-logout { order: 3; margin-inline-start: 0; }
 
+	/* The bar keeps the brand on one line: without a flex brandrow, the
+	 * content-sized brand (~logo + word) is only a few px wider than the
+	 * wordmark, so overflow-wrap:anywhere breaks a name like "OpenWrt"
+	 * mid-word. Cap the brandrow and ellipsise a too-long hostname
+	 * instead (below 860px it shares the row with indicators + logout). */
+	:root[data-layout="top"] .fs-brandrow { max-width: min(100%, 46vw); }
+	:root[data-layout="top"] .fs-wordmark {
+		display: block;
+		white-space: nowrap;
+		overflow-wrap: normal;
+		text-overflow: ellipsis;
+		-webkit-line-clamp: unset;
+	}
+
 	/* dropdown anchor/bridge/clamp live unguarded in 20-shell.css, not here (issue #19) */
 
 	/* :not(:empty):not(.single), not a hide pair: 20-shell.css already hides the mode strip */
 	:root[data-layout="top"] .fs-modemenu:not(:empty):not(.single) {
 		display: flex; order: 4; flex: 1 1 100%; margin: 0; gap: var(--fs-space-1);
+	}
+	/* A multi-mode strip is flex-basis:100% and needs a wrapping container to
+	 * land on its own second row; the desktop bar is nowrap by default (the
+	 * reference fit engine toggled a class, this theme has no fit engine).
+	 * :has-protected: an engine without :has keeps the nowrap fallback. */
+	@supports selector(:has(*)) {
+		:root[data-layout="top"] .fs-sidebar:has(#modemenu:not(.single)) {
+			flex-wrap: wrap;
+		}
 	}
 
 	:root[data-layout="top"] .fs-content { padding-top: var(--fs-space-6); }

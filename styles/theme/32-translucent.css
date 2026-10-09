@@ -1,0 +1,22 @@
+@layer theme {
+	/* FluentDesign v2: page cards are translucent so the built-in body
+	 * texture reads through them. Only the big content surfaces are
+	 * affected — nav dropdowns, modal dialogs, the tab strip, alerts and
+	 * inputs keep their opaque --fs-panel for legibility.
+	 *
+	 * 76% panel: faint enough to see the texture, opaque enough to hold
+	 * --fs-text contrast over it. Engines without color-mix() get the
+	 * plain opaque panel (the @supports block simply drops). */
+	@supports (background: color-mix(in srgb, red 50%, transparent)) {
+		.cbi-section,
+		.cbi-map > .cbi-section-node,
+		fieldset.cbi-section,
+		.panel,
+		.table {
+			background-color: color-mix(in srgb, var(--fs-panel) 76%, transparent);
+		}
+		/* a nested data table must not stack two translucent fills;
+		 * 30-tables strips its frame on the same shape, keep the paint paired */
+		.cbi-section .table:is([id], .fs-dt) { background: none; }
+	}
+}

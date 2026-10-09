@@ -11,7 +11,7 @@ luci-theme-footstrap (Apache-2.0).
 
 - Charcoal dark surfaces: `#1c2128` page / `#22272e` cards, blue accent `#569df5`
 - Horizontal top navigation: text-only pills, hover/tap dropdown panels
-- 12 px rounded cards, Manrope→system font stack, built-in cat pattern texture
+- 12 px rounded cards, Manrope→system font stack, built-in original geometric pattern texture
 - Dark-only: no light scheme, no appearance page, no UCI configuration
 - Login is a dark centered card rendered server-side (works with JS off,
   keeps every pluggable-auth/2FA field)
@@ -32,7 +32,7 @@ luci-theme-FluentDesign/
 ├── htdocs/luci-static/
 │   ├── fluentdesign/                         # theme media root
 │   │   ├── css/cascade.css                   # the single stylesheet (build output, committed)
-│   │   ├── pattern/cats.svg                  # built-in pattern texture
+│   │   ├── pattern/texture.svg               # built-in original pattern texture
 │   │   ├── logo.svg / logo_48.png / app-icon-192.png / manifest.json
 │   └── resources/
 │       └── menu-fluentdesign.js              # top-bar menu renderer (self-contained, ui/baseclass only)

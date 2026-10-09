@@ -31,7 +31,7 @@ cp "$REPO_ROOT/tests/harness/assets/icons/loading.svg" "$RES/icons/"
 # Theme menu renderer, stylesheet and media under test.
 cp "$REPO_ROOT/htdocs/luci-static/resources/menu-fluentdesign.js" "$RES/"
 cp "$REPO_ROOT/htdocs/luci-static/fluentdesign/css/cascade.css" "$MEDIA/css/"
-cp "$REPO_ROOT/htdocs/luci-static/fluentdesign/pattern/cats.svg" "$MEDIA/pattern/"
+cp "$REPO_ROOT/htdocs/luci-static/fluentdesign/pattern/texture.svg" "$MEDIA/pattern/"
 cp "$REPO_ROOT/htdocs/luci-static/fluentdesign/logo.svg" "$MEDIA/"
 cp "$REPO_ROOT/htdocs/luci-static/fluentdesign/logo_48.png" "$MEDIA/"
 cp "$REPO_ROOT/htdocs/luci-static/fluentdesign/app-icon-192.png" "$MEDIA/"

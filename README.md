@@ -10,7 +10,7 @@ v2 的视觉层源自 [luci-theme-footstrap](https://github.com/)（Apache-2.0�
 
 - 炭灰暗底：`#1c2128` 页面 / `#22272e` 卡片，蓝色强调 `#569df5`
 - 顶部水平导航：纯文字 pill，子菜单悬停/点击弹出下拉卡片
-- 12 px 大圆角卡片、Manrope→系统字体栈、内置猫咪暗纹背景
+- 12 px 大圆角卡片、Manrope→系统字体栈、内置原创几何暗纹背景
 - 暗色唯一：无浅色模式、无外观设置页、无 UCI 配置
 - 登录页为暗色居中卡片，服务端直出（禁用 JS 也可登录，兼容 2FA 插件字段）
 - 窄屏（≤860 px）自动换行为两行：品牌行 + 可横滑的 pill 条
@@ -30,7 +30,7 @@ luci-theme-FluentDesign/
 ├── htdocs/luci-static/
 │   ├── fluentdesign/                         # 主题媒体根目录
 │   │   ├── css/cascade.css                   # 唯一样式表（构建产物，随包提交）
-│   │   ├── pattern/cats.svg                  # 内置暗纹
+│   │   ├── pattern/texture.svg               # 内置原创暗纹
 │   │   ├── logo.svg / logo_48.png / app-icon-192.png / manifest.json
 │   └── resources/
 │       └── menu-fluentdesign.js              # 顶栏菜单渲染器（自包含，仅依赖 ui/baseclass）

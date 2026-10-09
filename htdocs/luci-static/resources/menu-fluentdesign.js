@@ -196,22 +196,35 @@ function renderModeMenu(root) {
 	const ul = document.querySelector('#modemenu');
 	const children = ui.menu.getChildren(root);
 
+	/* Highlight follows the REQUESTED mode, but the section pills are
+	 * built for the DISPATCHED one: some firmware ship an extra top-level
+	 * landing mode (often titled "Overview") whose action aliases into
+	 * admin/status/overview. ui.menu.getChildren() swaps an alias node's
+	 * children for the target node's — frequently empty — so rendering the
+	 * active alias copy would leave the bar with zero pills. Walk the
+	 * original tree using dispatchpath instead. */
+	const reqSeg = L.env.requestpath[0];
+	const dispSeg = L.env.dispatchpath[0];
+
 	children.forEach((child, index) => {
-		const isActive = L.env.requestpath.length
-			? child.name === L.env.requestpath[0]
-			: index === 0;
+		const isActive = (reqSeg != null)
+			? child.name === reqSeg
+			: (dispSeg != null ? child.name === dispSeg : index === 0);
 
 		ul.appendChild(E('li', { 'class': isActive ? 'active' : '' }, [
 			E('a', { 'href': L.url(child.name) }, [ _(child.title) ])
 		]));
-
-		if (isActive)
-			renderMainMenu(child, child.name);
 	});
 
-	if (children.length <= 1)
-		ul.classList.add('single');
-	if (ul.children.length > 1)
+	const sectionName = dispSeg || reqSeg || children[0]?.name;
+	const sectionNode = root.children ? root.children[sectionName] : null;
+	if (sectionNode)
+		renderMainMenu(sectionNode, sectionName);
+
+	/* render() presets .single + inline hide; correct it now that the
+	 * real mode count is known (a 2-mode firmware shows the switcher) */
+	ul.classList.toggle('single', children.length <= 1);
+	if (children.length > 1)
 		ul.style.display = '';
 }
 

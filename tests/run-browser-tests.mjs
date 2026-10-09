@@ -1,7 +1,9 @@
 // Drives tests/harness/shell.html with Playwright at two viewports
-// (1280px desktop bar, 390px wrapped bar) and fails the process unless
-// EVERY stage reports "ALL N CHECKS PASSED" with no console/page/network
-// error observed. Usage:
+// (1280px desktop bar, 390px wrapped bar), each also in the *-alias
+// variant (?alias=1: firmware with an extra top-level alias landing
+// mode), and fails the process unless EVERY stage reports
+// "ALL N CHECKS PASSED" with no console/page/network error observed.
+// Usage:
 //   node run-browser-tests.mjs <url> [screenshot-on-failure.png]
 
 import { chromium } from 'playwright';
@@ -16,8 +18,10 @@ if (!target) {
 }
 
 const STAGES = [
-	{ name: 'desktop', width: 1280, height: 900 },
-	{ name: 'narrow', width: 390, height: 844 }
+	{ name: 'desktop', width: 1280, height: 900, query: '' },
+	{ name: 'desktop-alias', width: 1280, height: 900, query: 'alias=1' },
+	{ name: 'narrow', width: 390, height: 844, query: '' },
+	{ name: 'narrow-alias', width: 390, height: 844, query: 'alias=1' }
 ];
 
 const browser = await chromium.launch({
@@ -47,7 +51,10 @@ for (const stage of STAGES) {
 
 	console.log(`\n=== stage ${stage.name} ${stage.width}x${stage.height} ===`);
 	try {
-		await page.goto(target, { waitUntil: 'load', timeout: 30000 });
+		const stageUrl = stage.query
+			? target + (target.includes('?') ? '&' : '?') + stage.query
+			: target;
+		await page.goto(stageUrl, { waitUntil: 'load', timeout: 30000 });
 
 		// The harness prepends an <h4> summary into #harness-log when finished.
 		await page.waitForFunction(() => {

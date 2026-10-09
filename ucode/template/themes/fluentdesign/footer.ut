@@ -25,7 +25,21 @@
 	<script>
 		var luciLocation = {{ ctx.path }};
 	</script>
-	<script type="text/javascript">L.require('menu-fluentdesign')</script>
+	<script type="text/javascript">
+		/* LuCI appends env.resource_version (the luci-base version) to every
+		 * module URL; it does not change when only this theme is upgraded, so
+		 * a same-name menu renderer can stay pinned to a stale cached copy.
+		 * Resolve the dependencies first, then add a theme-owned suffix to
+		 * the cache key for this one module only. resource_version is read
+		 * synchronously while require() builds the URL, so restoring it on
+		 * the next line does not affect the already-issued request. */
+		L.require('ui').then(function () {
+			var saved = L.env.resource_version;
+			L.env.resource_version = (saved ? saved + '-' : '') + 'fd2';
+			L.require('menu-fluentdesign');
+			L.env.resource_version = saved;
+		});
+	</script>
 	{% endif %}
 </body>
 </html>

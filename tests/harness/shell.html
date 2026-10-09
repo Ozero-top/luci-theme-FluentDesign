@@ -157,12 +157,31 @@ window.L = new LuCI({
 		customapp: node('customapp', '第三方插件'),
 		logout: node('logout', '退出')
 	});
-	const tree = node('root', 'root', { admin });
+	/* Alias-mode firmware shape: an extra public landing mode ("概览")
+	 * aliases into admin/status/overview. ui.menu.getChildren() swaps its
+	 * children for the target node's; the section pills must still render
+	 * from the dispatched admin node. ?alias=1 enables this variant. */
+	const aliasMode = new URLSearchParams(location.search).has('alias');
+	const rootChildren = { admin };
+	if (aliasMode) {
+		rootChildren.home = {
+			name: 'home', title: '概览', satisfied: true,
+			action: { type: 'alias', path: 'admin/status/overview' },
+			children: {}
+		};
+	}
+	const tree = node('root', 'root', rootChildren);
 	ui.menu.load = function() { return Promise.resolve(tree); };
 
-	// Dispatch path = admin / system / admin(管理权) / password(tab)
-	L.env.dispatchpath = ['admin', 'system', 'admin', 'password'];
-	L.env.requestpath = ['admin'];
+	if (aliasMode) {
+		// requested /home, dispatched to admin/status/overview
+		L.env.dispatchpath = ['admin', 'status', 'overview'];
+		L.env.requestpath = ['home'];
+	} else {
+		// Dispatch path = admin / system / admin(管理权) / password(tab)
+		L.env.dispatchpath = ['admin', 'system', 'admin', 'password'];
+		L.env.requestpath = ['admin'];
+	}
 
 	/* boot the real theme menu module */
 	await L.require('menu-fluentdesign');
@@ -198,8 +217,23 @@ window.L = new LuCI({
 	const pattern = document.querySelector('.fs-pattern');
 	const mask = pattern && (getComputedStyle(pattern).maskImage ||
 		getComputedStyle(pattern).webkitMaskImage || '');
-	check('cat pattern layer masked with cats.svg', !!pattern && mask.includes('cats.svg'),
+	check('pattern layer masked with texture.svg', !!pattern && mask.includes('texture.svg'),
 		mask.slice(0, 90));
+
+	/* brand wordmark stays one line (no mid-word wrap of a name like OpenWrt) */
+	const wordmark = document.querySelector('.fs-wordmark');
+	const wmStyle = getComputedStyle(wordmark);
+	check('wordmark kept on a single line', wmStyle.whiteSpace === 'nowrap' &&
+		wmStyle.webkitLineClamp === 'none', wmStyle.whiteSpace + '/' + wmStyle.webkitLineClamp);
+
+	/* page cards are translucent so the texture reads through; dropdown
+	 * panels and modal chrome stay opaque for legibility */
+	const cardBg = getComputedStyle(document.querySelector('.cbi-section')).backgroundColor;
+	/* alpha may serialize as rgba(r,g,b,a) or, in modern engines,
+	 * color(srgb r g b / a) after color-mix() resolves */
+	const cardAlphaMatch = cardBg.match(/(?:rgba\([^)]*,\s*|\/\s*)([01](?:\.\d+)?)\)$/);
+	const cardAlpha = Number(cardAlphaMatch ? cardAlphaMatch[1] : 1);
+	check('content cards are translucent', cardAlpha > 0 && cardAlpha < 1, cardBg);
 
 	check('skip link present', !!document.querySelector('a.fs-skip[href="#maincontent"]'));
 	check('sr-only h1 clipped', /inset/.test(getComputedStyle(document.querySelector('.fs-title')).clipPath));
@@ -209,16 +243,27 @@ window.L = new LuCI({
 
 	/* ============ mode menu / tabs ============ */
 	const modemenu = document.getElementById('modemenu');
-	check('modemenu renders the one mode', modemenu.querySelectorAll('li').length === 1);
-	check('single modemenu hidden', modemenu.classList.contains('single') &&
-		getComputedStyle(modemenu).display === 'none', getComputedStyle(modemenu).display);
+	if (aliasMode) {
+		check('modemenu renders both modes', modemenu.querySelectorAll('li').length === 2);
+		check('multi modemenu visible', !modemenu.classList.contains('single') &&
+			getComputedStyle(modemenu).display !== 'none', getComputedStyle(modemenu).display);
+		check('requested landing mode highlighted',
+			(document.querySelector('#modemenu li.active a') || {}).textContent === '概览');
+		check('tabs absent on the overview leaf',
+			document.querySelectorAll('#tabmenu ul.tabs > li').length === 0 &&
+			document.getElementById('tabmenu').style.display === 'none');
+	} else {
+		check('modemenu renders the one mode', modemenu.querySelectorAll('li').length === 1);
+		check('single modemenu hidden', modemenu.classList.contains('single') &&
+			getComputedStyle(modemenu).display === 'none', getComputedStyle(modemenu).display);
 
-	const tabItems = document.querySelectorAll('#tabmenu ul.tabs > li');
-	check('section tabs rendered', tabItems.length === 2, tabItems.length);
-	check('active tab follows dispatchpath',
-		!!document.querySelector('#tabmenu .tabmenu-item-password.active') &&
-		!tabItems[1].classList.contains('active'));
-	check('#tabmenu shown', document.getElementById('tabmenu').style.display !== 'none');
+		const tabItems = document.querySelectorAll('#tabmenu ul.tabs > li');
+		check('section tabs rendered', tabItems.length === 2, tabItems.length);
+		check('active tab follows dispatchpath',
+			!!document.querySelector('#tabmenu .tabmenu-item-password.active') &&
+			!tabItems[1].classList.contains('active'));
+		check('#tabmenu shown', document.getElementById('tabmenu').style.display !== 'none');
+	}
 
 	/* ============ pill markup / icons ============ */
 	const pills = Array.from(document.querySelectorAll('#topmenu > li'));
@@ -254,13 +299,22 @@ window.L = new LuCI({
 		getComputedStyle(sysTrigger.querySelector('.fs-chevron')).display === 'none');
 
 	/* active section: ink on the disclosure <a>, plate on the <li> only */
-	check('system section is active',
-		document.querySelector('#topmenu > li[data-name="system"].active') &&
-		!sysTrigger.classList.contains('active'));
-	check('active leaf inside dropdown', (function() {
-		const a = document.querySelector('#topmenu > li[data-name="system"] li a.active');
-		return !!a && /\/system\/admin$/.test(a.href) && a.textContent.trim() === '管理权';
-	})());
+	if (aliasMode) {
+		check('dispatched status section is active',
+			!!document.querySelector('#topmenu > li[data-name="status"].active'));
+		check('active leaf inside dropdown', (function() {
+			const a = document.querySelector('#topmenu > li[data-name="status"] li a.active');
+			return !!a && /\/status\/overview$/.test(a.href) && a.textContent.trim() === '概览';
+		})());
+	} else {
+		check('system section is active',
+			document.querySelector('#topmenu > li[data-name="system"].active') &&
+			!sysTrigger.classList.contains('active'));
+		check('active leaf inside dropdown', (function() {
+			const a = document.querySelector('#topmenu > li[data-name="system"] li a.active');
+			return !!a && /\/system\/admin$/.test(a.href) && a.textContent.trim() === '管理权';
+		})());
+	}
 
 	/* leaf pill is a plain link, not a disclosure button */
 	const homeA = topPill('home');
@@ -282,6 +336,9 @@ window.L = new LuCI({
 		sysTrigger.closest('li').classList.contains('open') &&
 		sysTrigger.getAttribute('aria-expanded') === 'true' &&
 		getComputedStyle(sysPanel).display === 'block');
+	check('dropdown panel stays opaque',
+		!/rgba\([^)]*,\s*0?\.\d/.test(getComputedStyle(sysPanel).backgroundColor),
+		getComputedStyle(sysPanel).backgroundColor);
 	const subLinks = sysPanel.querySelectorAll('li a');
 	check('panel lists the system entries', subLinks.length >= 15, subLinks.length);
 	check('panel links carry no icons',
@@ -356,8 +413,17 @@ window.L = new LuCI({
 			navR.right > window.innerWidth - 120, Math.round(navR.right));
 		check('logout sits at the far edge',
 			logoutR.right > window.innerWidth - 40, Math.round(logoutR.right));
-		check('bar stays a single row',
-			barR.height <= 70, Math.round(barR.height));
+		if (aliasMode) {
+			/* two modes: the mode strip takes its own row below the bar */
+			const modeR = modemenu.getBoundingClientRect();
+			check('mode strip wraps to a second row',
+				modeR.top >= navR.bottom - 1 && barR.height > 55,
+				'mode ' + Math.round(modeR.top) + ' nav-b ' + Math.round(navR.bottom) +
+				' bar ' + Math.round(barR.height));
+		} else {
+			check('bar stays a single row',
+				barR.height <= 70, Math.round(barR.height));
+		}
 	} else {
 		check('menu wraps below the brand row',
 			navR.top >= brandR.bottom - 1,

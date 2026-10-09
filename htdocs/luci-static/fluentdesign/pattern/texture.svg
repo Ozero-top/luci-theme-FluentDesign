@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none">
+	<!-- FluentDesign original texture: rounded tiles, rings and a small
+	     network graph. Every glyph stays inside a 26px inset margin, so the
+	     tile repeats seamlessly on all four edges. Alpha-only art — the
+	     theme masks with it and paints the glyphs in the theme ink. -->
+	<g stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity=".9">
+		<rect x="30" y="36" width="60" height="60" rx="16"/>
+		<rect x="46" y="52" width="28" height="28" rx="8" stroke-width="1.6"/>
+		<circle cx="168" cy="62" r="24"/>
+		<path d="M184 96a26 26 0 0 1 14 23" stroke-width="1.6"/>
+		<circle cx="176" cy="172" r="17"/>
+		<path d="M168 201h16M176 193v16" stroke-width="1.6"/>
+		<path d="M62 160l34 18 20-32"/>
+		<circle cx="62" cy="160" r="5" fill="#fff" stroke="none"/>
+		<circle cx="96" cy="178" r="5" fill="#fff" stroke="none"/>
+		<circle cx="116" cy="146" r="5" fill="#fff" stroke="none"/>
+		<path d="M44 128l18-14" stroke-width="1.6"/>
+	</g>
+	<g fill="#fff">
+		<circle cx="202" cy="44" r="2.6"/>
+		<circle cx="128" cy="34" r="2.2"/>
+		<circle cx="40" cy="112" r="2.4"/>
+		<circle cx="206" cy="128" r="2.2"/>
+		<circle cx="150" cy="206" r="2.4"/>
+		<circle cx="204" cy="198" r="2.2"/>
+		<circle cx="84" cy="114" r="1.8"/>
+	</g>
+</svg>

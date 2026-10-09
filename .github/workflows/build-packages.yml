@@ -139,7 +139,7 @@ jobs:
             usr/share/ucode/luci/template/themes/fluentdesign/sysauth.ut \
             usr/share/ucode/luci/template/themes/fluentdesign/head_meta.ut \
             www/luci-static/fluentdesign/css/cascade.css \
-            www/luci-static/fluentdesign/pattern/cats.svg \
+            www/luci-static/fluentdesign/pattern/texture.svg \
             www/luci-static/fluentdesign/logo.svg \
             www/luci-static/fluentdesign/manifest.json \
             www/luci-static/resources/menu-fluentdesign.js \
