@@ -88,7 +88,10 @@ third-party application that targets the standard LuCI layout renders
 inside the theme: the shell keeps the stock DOM contract
 (`#topmenu`, `#modemenu`, `#tabmenu`, `#indicators`, `#maincontent`),
 and menu/tabs/poll indicators are rendered by `menu-fluentdesign.js`
-using only public `ui` APIs.
+using only public `ui` APIs. The shell also keeps its geometry when a
+third-party stylesheet ships a global reset (e.g. OpenClash), and
+declares the dark-appearance contract read by iStoreOS apps
+(quickstart, iStore, VUM), so they render in dark mode automatically.
 
 **Browsers** — recent Chrome/Edge, Firefox and Safari engines get the
 full experience; older engines degrade gracefully via `@supports` and
@@ -198,6 +201,7 @@ opkg remove luci-theme-fluentdesign
 
 | Version | Date       | Notes                          |
 |---------|------------|--------------------------------|
+| 2.0.2   | 2026-10-09 | Fix layout collapse on third-party app pages; dark-mode support for iStoreOS apps |
 | 2.0.1   | 2026-10-09 | Fix brand title wrapping and missing nav on dual-mode firmware; original pattern texture; translucent cards |
 | 2.0.0   | 2026-10-09 | Rewrite as a dark top-navigation theme (footstrap look); light mode and the settings page removed |
 | 1.1.3   | 2026-10-09 | Locale-independent nav icons, acrylic desktop sidebar |
