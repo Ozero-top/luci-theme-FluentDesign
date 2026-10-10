@@ -264,7 +264,9 @@ body.logged-in .modal > .button-row > button:first-of-type { margin-inline-end: 
 	:root[data-layout="top"] body.logged-in .fs-sidebar { padding: var(--fs-space-2-5) var(--fs-space-3); }
 	:root[data-layout="top"] body.logged-in .fs-sidebar ul.nav {
 		margin-inline-start: 0;
-		padding-bottom: var(--fs-space-1);
+		/* mirrors 50-toplayout.css: inline padding keeps the end pills' rings
+		 * inside the horizontal scroller's clip */
+		padding: 0 var(--fs-space-1) var(--fs-space-1);
 	}
 	:root[data-layout="top"] body.logged-in .fs-sidebar #indicators { margin-inline-start: auto; }
 	:root[data-layout="top"] body.logged-in .fs-logout { margin-inline-start: 0; }

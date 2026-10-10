@@ -87,7 +87,15 @@
 			overflow-x: auto;
 			scrollbar-width: none;
 			-webkit-overflow-scrolling: touch;
-			padding-bottom: var(--fs-space-1);
+			/* inline padding keeps a pill's focus/active ring inside the scroll
+			 * clip at both strip ends (the scroller clips to its own padding
+			 * box, and the first/last pill sat flush against it — the active
+			 * ring was sliced into a crescent when JS scrolled it into view);
+			 * padding-bottom keeps room for the active underline */
+			padding: 0 var(--fs-space-1) var(--fs-space-1);
+			/* programmatic scrollIntoView must stop one pill-gap short of the
+			 * edge instead of pinning the active pill flush to the clip */
+			scroll-padding-inline: var(--fs-space-2);
 		}
 		:root[data-layout="top"] .fs-sidebar ul.nav::-webkit-scrollbar { display: none; }
 		:root[data-layout="top"] .fs-sidebar #indicators,

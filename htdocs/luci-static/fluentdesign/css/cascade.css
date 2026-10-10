@@ -2131,7 +2131,9 @@ body.logged-in .modal > .button-row > button:first-of-type { margin-inline-end: 
 	:root[data-layout="top"] body.logged-in .fs-sidebar { padding: var(--fs-space-2-5) var(--fs-space-3); }
 	:root[data-layout="top"] body.logged-in .fs-sidebar ul.nav {
 		margin-inline-start: 0;
-		padding-bottom: var(--fs-space-1);
+		/* mirrors 50-toplayout.css: inline padding keeps the end pills' rings
+		 * inside the horizontal scroller's clip */
+		padding: 0 var(--fs-space-1) var(--fs-space-1);
 	}
 	:root[data-layout="top"] body.logged-in .fs-sidebar #indicators { margin-inline-start: auto; }
 	:root[data-layout="top"] body.logged-in .fs-logout { margin-inline-start: 0; }
@@ -2171,10 +2173,24 @@ body.logged-in .modal > .button-row > button:first-of-type { margin-inline-end: 
 
 /* ---------- P0: complete the app's own dark variable set ---------- */
 
-body[theme="dark"] {
-	--card-bg-color: rgba(255, 255, 255, .06);
+/* .logged-in raises specificity to (0,2,1): the app re-declares this SAME
+ * variable set on plain body[theme=dark] (0,1,1) inside its view stylesheet,
+ * which always loads AFTER the theme cascade — equal specificity would lose
+ * on source order. quickstart only renders inside the authenticated shell,
+ * whose <body> always carries logged-in. */
+body.logged-in[theme="dark"] {
+	/* glass card surface, same 88% panel recipe as theme/32-translucent.css:
+	 * #app itself paints no background, so the body texture reads through
+	 * these cards exactly as it does through CBI sections. Opaque fallback
+	 * for engines without color-mix() (the @supports block below drops). */
+	--fs-oc-glass: var(--fs-panel);
+	/* the app wires --card-bg-color into feature-card, reusable-card and the
+	 * item tiles, so one variable puts the whole card system on the glass */
+	--card-bg-color: var(--fs-oc-glass);
 	--card-txt-color: var(--fs-text);
 	--border-color: rgba(255, 255, 255, .10);
+	/* popovers/tags are floating chrome — stay opaque like the theme's own
+	 * dropdowns and modal dialogs */
 	--tag-bg-color: var(--fs-panel2);
 	--popup-bg-color: var(--fs-panel);
 	--SystemInfo-bg-color: var(--fs-panel2);
@@ -2183,6 +2199,11 @@ body[theme="dark"] {
 	--btn-border-color: var(--fs-border);
 	--btn-border-hover-color: #373e47;
 }
+@supports (background: color-mix(in srgb, red 50%, transparent)) {
+	body.logged-in[theme="dark"] {
+		--fs-oc-glass: color-mix(in srgb, var(--fs-panel) 88%, transparent);
+	}
+}
 
 /* ---------- P0: setup wizard root and full-screen action overlays ---------- */
 
@@ -2190,8 +2211,15 @@ body[theme="dark"] .action-container {
 	background: rgba(28, 33, 40, .96);
 	color: var(--fs-text);
 }
+/* wizard step panels are page cards over the near-opaque scrim -> glass;
+ * the actioner-* dialogs are floating overlays -> stay opaque */
 body[theme="dark"] .action,
-body[theme="dark"] .action-main,
+body[theme="dark"] .action-main {
+	background: var(--fs-oc-glass);
+	border-color: var(--fs-border);
+	color: var(--fs-text);
+	box-shadow: var(--fs-shadow-pop);
+}
 body[theme="dark"] .actioner-dns,
 body[theme="dark"] .actioner-tips {
 	background: var(--fs-panel2);
@@ -2239,16 +2267,19 @@ body[theme="dark"] #app .feature-card.orange .badge { background: rgba(219, 124,
 body[theme="dark"] #app .item_container .item {
 	border-color: var(--fs-border);
 }
-/* the app pins this one with !important, match it */
+/* the app pins this one with !important, match it — glass, same as the
+ * feature cards it groups */
 body[theme="dark"] #app .reusable-card {
-	background: var(--fs-panel2) !important;
+	background: var(--fs-oc-glass) !important;
 	border-color: var(--fs-border) !important;
 }
 
 /* ---------- P2: network-port panel, tables, inputs ---------- */
 
+/* outer port panel is the page card -> glass; its inner sub-panels hold the
+ * dense port tables and stay opaque, same contract as nested CBI tables */
 body[theme="dark"] #app .custom-content .address_box {
-	background: var(--fs-panel);
+	background: var(--fs-oc-glass);
 }
 body[theme="dark"] #app .custom-content .address_box > div {
 	background: var(--fs-panel2);
@@ -2341,7 +2372,7 @@ body[theme="dark"] #app .module-settings__btn--secondary {
 	color: var(--fs-text);
 }
 body[theme="dark"] #app .module-settings__item {
-	background: var(--fs-panel2);
+	background: var(--fs-oc-glass);
 	border-color: var(--fs-border);
 }
 
@@ -3616,19 +3647,22 @@ body[theme="dark"] #app .module-settings__item {
 	}
 	/* FluentDesign v2: page cards are translucent so the built-in body
 	 * texture reads through them. Only the big content surfaces are
-	 * affected — nav dropdowns, modal dialogs, the tab strip, alerts and
-	 * inputs keep their opaque --fs-panel for legibility.
+	 * affected — nav dropdowns, modal dialogs, the tab strip, alerts,
+	 * inputs and DATA TABLES keep their opaque surface for legibility.
 	 *
-	 * 76% panel: faint enough to see the texture, opaque enough to hold
-	 * --fs-text contrast over it. Engines without color-mix() get the
+	 * 88% panel: the 76% fill let the high-contrast motif through hard
+	 * enough to blur card edges and fight dense table text in audits; 88%
+	 * still reads as glass over the texture while holding a clean edge and
+	 * full text contrast. Bare .table stays opaque — a standalone table is
+	 * a reading surface, not a card, and dense grids (leases, stations)
+	 * must not float over the motif. Engines without color-mix() get the
 	 * plain opaque panel (the @supports block simply drops). */
 	@supports (background: color-mix(in srgb, red 50%, transparent)) {
 		.cbi-section,
 		.cbi-map > .cbi-section-node,
 		fieldset.cbi-section,
-		.panel,
-		.table {
-			background-color: color-mix(in srgb, var(--fs-panel) 76%, transparent);
+		.panel {
+			background-color: color-mix(in srgb, var(--fs-panel) 88%, transparent);
 		}
 		/* a nested data table must not stack two translucent fills;
 		 * 30-tables strips its frame on the same shape, keep the paint paired */
@@ -4096,7 +4130,15 @@ body[theme="dark"] #app .module-settings__item {
 			overflow-x: auto;
 			scrollbar-width: none;
 			-webkit-overflow-scrolling: touch;
-			padding-bottom: var(--fs-space-1);
+			/* inline padding keeps a pill's focus/active ring inside the scroll
+			 * clip at both strip ends (the scroller clips to its own padding
+			 * box, and the first/last pill sat flush against it — the active
+			 * ring was sliced into a crescent when JS scrolled it into view);
+			 * padding-bottom keeps room for the active underline */
+			padding: 0 var(--fs-space-1) var(--fs-space-1);
+			/* programmatic scrollIntoView must stop one pill-gap short of the
+			 * edge instead of pinning the active pill flush to the clip */
+			scroll-padding-inline: var(--fs-space-2);
 		}
 		:root[data-layout="top"] .fs-sidebar ul.nav::-webkit-scrollbar { display: none; }
 		:root[data-layout="top"] .fs-sidebar #indicators,
