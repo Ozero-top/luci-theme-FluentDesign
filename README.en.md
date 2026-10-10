@@ -7,7 +7,7 @@
 A **dark top-navigation** theme for [OpenWrt LuCI](https://github.com/openwrt/luci),
 built on the current ucode-template LuCI stack (OpenWrt 22.03 through
 25.12 / SNAPSHOT). The v2 visual layer is vendored from
-luci-theme-footstrap (Apache-2.0).
+ [luci-theme-footstrap](https://github.com/VizzleTF/luci-theme-footstrap)（Apache-2.0）。
 
 - Charcoal dark surfaces: `#1c2128` page / `#22272e` cards, blue accent `#569df5`
 - Horizontal top navigation: text-only pills, hover/tap dropdown panels
