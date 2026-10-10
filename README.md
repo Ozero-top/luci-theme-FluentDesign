@@ -6,7 +6,7 @@
 
 面向 [OpenWrt LuCI](https://github.com/openwrt/luci) 的**暗色顶部导航**主题，
 基于现行 ucode 模板 LuCI 技术栈（OpenWrt 22.03 至 25.12 / SNAPSHOT）。
-v2 的视觉层源自 [luci-theme-footstrap](https://github.com/)（Apache-2.0）。
+v2 的视觉层源自 [luci-theme-footstrap](https://github.com/VizzleTF/luci-theme-footstrap)（Apache-2.0）。
 
 - 炭灰暗底：`#1c2128` 页面 / `#22272e` 卡片，蓝色强调 `#569df5`
 - 顶部水平导航：纯文字 pill，子菜单悬停/点击弹出下拉卡片
